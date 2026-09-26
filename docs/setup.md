@@ -25,7 +25,7 @@ is optional: the repo deliberately carries no secrets, no virtualenv and no
 | Docker Desktop | any, and **running** | `docker ps` |
 
 On Windows, install Python from python.org with **"Add python.exe to PATH"**
-ticked, and start Docker Desktop before going further — `docker ps` has to answer
+ticked, and start Docker Desktop before going further. `docker ps` has to answer
 with a table, not an error.
 
 ### 2. Get the code
@@ -43,7 +43,7 @@ docker ps                  # expect smartsme-db-1, smartsme-redis-1 and smartsme
 ```
 
 There is no embedded-database fallback: the API exits on startup if it cannot
-reach Postgres. Nothing needs to be installed on the host — the database lives
+reach Postgres. Nothing needs to be installed on the host, since the database lives
 inside the container, and `psql` can be reached with
 `docker exec -it smartsme-db-1 psql -U smartsme -d smartsme`.
 
@@ -57,7 +57,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Then create the config, **which the pull does not bring** — `backend/.env` is
+Then create the config, **which the pull does not bring**. `backend/.env` is
 git-ignored so that nobody's keys travel through the repo. Every machine makes
 its own from the template:
 
@@ -73,7 +73,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 The defaults for everything else already match the Docker database and the Vite
 dev server, so `AUTH_SECRET` is the only line that must change. An AI key is
-optional — see [step 7](#7-optional-turn-on-the-ai-features).
+optional, see [step 7](#7-optional-turn-on-the-ai-features).
 
 Create the schema:
 
@@ -107,7 +107,7 @@ cd frontend && npm run dev
 Open <http://localhost:5173> and sign in as `demo@smartsme.app` / `demo1234`. The
 first boot seeds that demo business automatically.
 
-To confirm the whole stack is wired up, run the tests — 78 should pass:
+To confirm the whole stack is wired up, run the tests, and 381 should pass:
 
 ```bash
 cd backend
@@ -119,7 +119,7 @@ cd backend
 Without a key the app still runs: Smart Input falls back to a built-in regex
 parser, and photos need `OCR_SPACE_API_KEY` (free) or a vision key.
 
-**`GOOGLE_API_KEY` is the one to get** — [aistudio.google.com](https://aistudio.google.com/apikey)
+**`GOOGLE_API_KEY` is the one to get**, at [aistudio.google.com](https://aistudio.google.com/apikey)
 issues it free with no card, and the same key covers smarter text parsing *and*
 reading handwritten slips including their corrections. The Settings page shows
 whether it is live.
@@ -139,7 +139,7 @@ whether it is live.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `WinError 10013` on uvicorn, or `address already in use` | port 8000 is taken | `netstat -ano \| findstr :8000`, then stop that process |
-| `Port 5173 is in use, trying another one` | another Vite is running | harmless — the proxy still targets :8000 — or stop the other one |
+| `Port 5173 is in use, trying another one` | another Vite is running | harmless, the proxy still targets :8000, or stop the other one |
 | Postgres container will not start, port 5432 in use | a native PostgreSQL is installed on the host | stop that service, or change the published port in `docker-compose.yml` |
 | API exits with a connection error on startup | the container is not running | `docker compose up -d` |
 | `alembic` / `uvicorn` "not recognised" | the virtualenv is not active | activate it, or call `.venv\Scripts\python -m uvicorn ...` |

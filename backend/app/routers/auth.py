@@ -101,7 +101,7 @@ def sign_up(body: SignUpInput, response: Response, db: Db) -> dict:
     """Create a business and its first owner.
 
     This is the only way an `owner` appears without an invitation, and it never
-    creates a platform role — those are made with `python -m app.cli`.
+    creates a platform role. Those are made with `python -m app.cli`.
     """
     if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")

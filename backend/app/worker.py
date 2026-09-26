@@ -11,7 +11,7 @@ hands the pending events to Redis and returns. The background thread is a
 convenience for long-running hosts in inline mode; it is skipped when
 DISABLE_WORKER is set, and in celery mode, where Celery owns the work.
 
-The claim/process functions are public because the Celery tasks reuse them —
+The claim/process functions are public because the Celery tasks reuse them,
 there is exactly one implementation of what happens to an event.
 """
 
@@ -123,7 +123,7 @@ def drain_queue(max_rounds: int = 12) -> int:
     """Deal with everything pending, the way this deployment is configured.
 
     In "inline" mode the chain is followed here and now, so a write's effects
-    are applied before the request returns — a sale emits STOCK_UPDATED, which
+    are applied before the request returns: a sale emits STOCK_UPDATED, which
     may raise a low-stock alert, and all of it lands before the client sees the
     201. In "celery" mode the events are handed to Redis instead and the request
     returns immediately; a worker applies them a moment later.

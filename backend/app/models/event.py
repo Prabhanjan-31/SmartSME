@@ -1,7 +1,7 @@
 """The event bus, stored as a transactional outbox.
 
 Business rows and the event that describes them are committed in the same
-transaction, so an event can never exist for a write that rolled back — and a
+transaction, so an event can never exist for a write that rolled back, and a
 write can never be silently missed by the worker.
 """
 

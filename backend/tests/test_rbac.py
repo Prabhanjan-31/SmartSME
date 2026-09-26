@@ -1,7 +1,7 @@
 """Role permissions, the invite flow and sign-in throttling.
 
 Every role is exercised against the endpoints that matter for it, from both
-sides: what it may do, and what it must be refused. The refusals are the point —
+sides: what it may do, and what it must be refused. The refusals are the point,
 a permission test that only checks the happy path proves nothing.
 """
 
@@ -272,7 +272,7 @@ def test_tenant_roles_cannot_list_businesses(client, employee_client):
 
 def test_owner_cannot_reach_another_business(client, other_business_id):
     """The businessId parameter is ignored for tenant roles, and asking for
-    someone else's is a 404 rather than a 403 — no probing for tenants."""
+    someone else's is a 404 rather than a 403, so no probing for tenants."""
     r = client.get("/api/dashboard", params={"businessId": other_business_id})
     assert r.status_code == 404
 

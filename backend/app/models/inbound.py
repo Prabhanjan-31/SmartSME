@@ -1,7 +1,7 @@
 """Orders arriving from outside: email and messaging channels.
 
 Every inbound message lands here first and stays here until a person accepts
-it. Nothing external can write to a business's books unattended — the parsed
+it. Nothing external can write to a business's books unattended. The parsed
 draft is a *suggestion* on the Inbox page, exactly like the one Smart Input
 shows before you confirm it.
 
@@ -23,10 +23,10 @@ from .base import Base, business_fk, fk, pk, timestamp
 #: Where a message came from.
 CHANNELS = ("email", "telegram")
 
-#: pending  — parsed, waiting for someone to look at it
-#: accepted — turned into a sale/purchase/expense
-#: rejected — dismissed as spam or noise
-#: failed   — could not be parsed at all
+#: pending:  parsed, waiting for someone to look at it
+#: accepted: turned into a sale/purchase/expense
+#: rejected: dismissed as spam or noise
+#: failed:   could not be parsed at all
 STATUSES = ("pending", "accepted", "rejected", "failed")
 
 
@@ -53,7 +53,7 @@ class InboundMessage(Base):
 
     #: email | telegram
     channel: Mapped[str] = mapped_column(Text, nullable=False)
-    #: The channel's own id for this message — a Message-ID header, or a
+    #: The channel's own id for this message: a Message-ID header, or a
     #: Telegram update id. The deduplication key.
     external_id: Mapped[str] = mapped_column(Text, nullable=False)
 

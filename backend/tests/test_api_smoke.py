@@ -2,7 +2,7 @@
 
 One pass over the whole HTTP surface: each route is called the way the SPA calls
 it, and the response is checked for the shape the client relies on. This is not a
-substitute for the unit tests in `test_domain.py` — the arithmetic lives there —
+substitute for the unit tests in `test_domain.py` (the arithmetic lives there)
 it is the "does the wiring hold end to end" layer: routing, auth, serialization,
 the domain call behind each route, and the event effects that follow a write.
 
@@ -16,7 +16,7 @@ import uuid
 
 import pytest
 
-# A 1x1 transparent PNG — enough to exercise the upload path.
+# A 1x1 transparent PNG, enough to exercise the upload path.
 TINY_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
     "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="

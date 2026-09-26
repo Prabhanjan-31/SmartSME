@@ -115,7 +115,7 @@ def list_parties(ctx: CurrentUser, db: Db, paging: Paging) -> dict:
 
     # Outstanding invoices and bills, so a party row can be expanded to show
     # what makes up its balance. Restricted to the parties actually on this
-    # page — this used to read every sale and purchase the business had.
+    # page. This used to read every sale and purchase the business had.
     outstanding: dict[str, list[dict]] = {}
 
     def collect(rows, ref_attr: str) -> None:
@@ -221,7 +221,7 @@ def settle_all(kind: str, ctx: CurrentUser, db: Db) -> dict:
     """Clear every customer, or every supplier, at once.
 
     This one stays with the owner. It is not bookkeeping for a party someone
-    actually dealt with — it writes off balances across the whole business,
+    actually dealt with: it writes off balances across the whole business,
     including parties the person clicking has never met, in one irreversible
     step. That is a decision about the books, not a record of a payment.
     """

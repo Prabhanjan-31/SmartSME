@@ -2,7 +2,7 @@
 
 Telegram is the one mainstream messenger with a genuinely free, instantly
 self-issued API key: message @BotFather, send `/newbot`, get a token. No card,
-no business verification, no approval queue — which is why it is the channel
+no business verification, no approval queue, which is why it is the channel
 wired up here.
 
 **Linking.** Telegram cannot know which shop a chat belongs to, so the owner
@@ -76,7 +76,7 @@ def get_updates(offset: int | None = None, timeout: int = 0) -> list[dict]:
 
 
 def send_message(chat_id: str | int, text: str) -> bool:
-    """Reply in the chat. Best effort — a failed reply must never lose the order
+    """Reply in the chat. Best effort: a failed reply must never lose the order
     that prompted it."""
     if not enabled():
         return False

@@ -1,4 +1,4 @@
-"""Pydantic request payloads — the wire contract with the React client.
+"""Pydantic request payloads: the wire contract with the React client.
 
 Grouped to mirror `app.models`. These validate what comes in; responses are
 assembled by `app.serializers`.

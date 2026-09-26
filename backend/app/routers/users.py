@@ -77,7 +77,7 @@ def list_team(ctx: CurrentUser, db: Db) -> dict:
 def create_invite(body: InviteInput, ctx: CurrentUser, db: Db, request: Request) -> dict:
     """Mint an invitation and return the join link.
 
-    The raw token appears in this response and nowhere else — there is no mail
+    The raw token appears in this response and nowhere else: there is no mail
     transport here, so the owner copies the link and sends it however they
     already reach their staff.
     """

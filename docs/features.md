@@ -57,7 +57,7 @@ with their own dates; an alerts inbox fed by the workflow engine.
 
 Alerts are raised by workflow rules and listed on the Notifications page. Each
 one records **which rule fired, on which event, and therefore who caused it**
-(`notifications.event_id` / `rule_id`, migration `0005`) — the difference
+(`notifications.event_id` / `rule_id`, migration `0005`), which is the difference
 between a message and something you can audit.
 
 The list filters by severity and by unread, and an alert can be marked unread

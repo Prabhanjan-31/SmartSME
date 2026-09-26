@@ -2,10 +2,16 @@
 
 An AI-assisted, event-driven business-management platform for small and medium
 businesses. Shopkeepers record sales, purchases and expenses either through
-normal forms or by **typing a plain-language note / snapping a photo of a bill** —
-the Smart Input Engine turns that into a structured business event, shows it for
+normal forms or by **typing a plain-language note / snapping a photo of a bill**,
+in English, Hindi or Kannada, in their own script or typed in English letters.
+The Smart Input Engine turns that into a structured business event, shows it for
 confirmation, and publishes it onto an internal event bus that updates inventory,
 party balances and alerts.
+
+Customers can also **send orders in by email or Telegram**, including a photo of
+a handwritten slip. Those are parsed by the same engine and land in a review
+queue. Nothing from outside ever writes to the books until someone in the shop
+accepts it.
 
 **Stack:** FastAPI + SQLAlchemy + Alembic + PostgreSQL on the backend, React +
 Vite + Tailwind on the frontend, talking over a cookie-authenticated JSON API.
@@ -61,6 +67,32 @@ Sign in with the seeded demo account:
 |---|---|
 | **Email** | `demo@smartsme.app` |
 | **Password** | `demo1234` |
+
+### API keys are not in the repo
+
+`backend/.env` is gitignored, so **cloning does not give you anyone's API key**.
+Everyone who runs SmartSME gets their own. `-Setup` writes a `backend/.env` from
+the template with `GOOGLE_API_KEY=""` waiting to be filled in:
+
+1. Open <https://aistudio.google.com/apikey> and sign in with any Google account
+2. Create a key. It is free, instant, and needs no card
+3. Paste it into `GOOGLE_API_KEY` in `backend/.env` and restart the API
+
+Do not share one key between people. The free tier is about 15 requests per
+minute, so a shared key means one of you silently falls back to the offline
+parser mid-demo.
+
+**The app runs fine without any key.** Forms, ledger, inventory, reports, roles,
+the event bus and both inbound channels are unaffected, and typed notes fall
+back to the built-in regex parser, which scores 85.7% exact-match on the
+[evaluation set](docs/evaluation.md) and 100% on Hindi and Kannada script. A key
+buys sharper parsing of messy English and, with `GOOGLE_API_KEY` specifically,
+reading photographed slips. `OCR_SPACE_API_KEY` is a second free option that
+covers photos only.
+
+If your `.env` predates a feature and has nowhere to put a new setting, run
+`python -m app.cli sync-env` from `backend`. It appends what the template has
+gained and never touches a value you already set.
 
 If script execution is blocked on your machine:
 `powershell -ExecutionPolicy Bypass -File .\run-dev.ps1`.
@@ -147,7 +179,7 @@ catalogue, so every line resolves to a real product and price.
 ```
 
 Within half a minute a red count appears on **Inbox** in the sidebar and in the
-browser tab title — you do not have to go looking, and **Check now** only skips
+browser tab title. You do not have to go looking, and **Check now** only skips
 the wait. The order appears as a draft with the customer and product already
 matched; accept it and it becomes a real sale.
 Sales, purchases and expenses all work - the wording decides which, so
@@ -156,7 +188,7 @@ Sales, purchases and expenses all work - the wording decides which, so
 <http://localhost:8025> shows the raw mail. Full walkthrough:
 [Email, step by step](docs/inbound-orders.md#email-step-by-step).
 
-**5. Telegram** (optional). **A bot already exists for this project — you do not
+**5. Telegram** (optional). **A bot already exists for this project, so you do not
 need to make another one.** Ask for the token, put it in `backend/.env` as
 `TELEGRAM_BOT_TOKEN`, restart, and skip to the `check-telegram` line below.
 Only one machine may poll a bot at a time, so whoever is testing should be the

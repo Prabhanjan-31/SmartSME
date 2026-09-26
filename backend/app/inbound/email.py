@@ -5,14 +5,14 @@ Two protocols, because the two situations differ:
 * **POP3** is what Mailpit speaks, so `docker compose up -d` gives you a working
   inbox locally with nothing to sign up for. Mail sent to
   `orders+<token>@smartsme.local` on port 1025 is collected on port 1110.
-* **IMAP** is what a real mailbox speaks — Gmail, Zoho, a company server. Same
+* **IMAP** is what a real mailbox speaks: Gmail, Zoho, a company server. Same
   routing, same parsing.
 
 Both are stdlib (`poplib`, `imaplib`), so no dependency was added for this.
 
 Routing is by plus-address: the business's `inbox_token` goes in the local part,
 `orders+7f3a...@your-domain`. It is a shared secret in the same sense a calendar
-subscription URL is — anyone who has it can put a *draft* in the queue, and a
+subscription URL is: anyone who has it can put a *draft* in the queue, and a
 person still has to accept it before anything is recorded.
 """
 
@@ -38,7 +38,7 @@ log = logging.getLogger("smartsme.inbound.email")
 #: thread with the event tick, so a hung socket would stop event processing too.
 MAIL_TIMEOUT = 15
 
-#: orders+<token>@domain — the token is what routes the mail.
+#: orders+<token>@domain, where the token routes the mail.
 _PLUS_ADDRESS = re.compile(r"\+([0-9a-z]{6,64})@", re.IGNORECASE)
 
 

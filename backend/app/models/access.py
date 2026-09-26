@@ -20,7 +20,7 @@ class Invite(Base):
     """A pending invitation to join a business.
 
     Only the SHA-256 of the token is stored, so a leaked database still cannot
-    be used to accept an invitation — the same reasoning as a password hash.
+    be used to accept an invitation, the same reasoning as a password hash.
     """
 
     __tablename__ = "invites"

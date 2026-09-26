@@ -359,7 +359,7 @@ _TO_RE = _postposition_re(_TO_WORDS)
 _FROM_RE = _postposition_re(_FROM_WORDS)
 
 #: Kannada glues the postposition onto the name: "ಅನಿತಾಗೆ" is "to Anita". Only
-#: the native script is handled here — splitting a romanised "Anitage" would be
+#: the native script is handled here. Splitting a romanised "Anitage" would be
 #: guesswork.
 _KANNADA_SUFFIX_TO = re.compile(rf"(?<![\w{KANNADA}])([{KANNADA}]{{3,}})(ಗೆ|ಕ್ಕೆ)(?![\w{KANNADA}])")
 _KANNADA_SUFFIX_FROM = re.compile(rf"(?<![\w{KANNADA}])([{KANNADA}]{{3,}})(ಇಂದ)(?![\w{KANNADA}])")
@@ -475,7 +475,7 @@ def normalize(text: str) -> str:
     out = out.replace("₹", " rs ")
 
     # Vocabulary first. Kannada is agglutinative, so an ordinary word can end in
-    # the same syllable as a postposition — ಬಾಡಿಗೆ ("rent") ends in ಗೆ ("to").
+    # the same syllable as a postposition: ಬಾಡಿಗೆ ("rent") ends in ಗೆ ("to").
     # Rewriting known words before hunting for postpositions stops "rent" being
     # split into "to ಬಾಡಿ".
     for pattern, english in _VOCAB_RE:

@@ -7,7 +7,7 @@ untouched. If Postgres is not running the smoke tests skip with a note instead
 of failing fifty times over.
 
 The environment has to be set before `app.core.db` is imported, because that
-module builds its engine the moment it is loaded — hence the work at import time
+module builds its engine the moment it is loaded, hence the work at import time
 rather than inside a fixture.
 """
 
@@ -166,7 +166,7 @@ def fresh_client(anon):
 # Roles
 #
 # Platform accounts are created straight in the database because there is no
-# HTTP route that mints one — that is the point of them.
+# HTTP route that mints one. That is the point of them.
 # ---------------------------------------------------------------------------
 PLATFORM_PASSWORD = "platform-password-1234"
 
@@ -356,13 +356,13 @@ def pytest_sessionstart(session):
 
 def pytest_runtest_logreport(report):
     """Keep the rendered failure while the traceback style is still the real
-    one — `pytest_sessionfinish` mutes it below to stop pytest printing the
+    one. `pytest_sessionfinish` mutes it below to stop pytest printing the
     same block a second time, higher up."""
     if report.failed and not getattr(report, "wasxfail", False):
         where = report.nodeid if report.when == "call" else f"{report.nodeid} ({report.when})"
         _failures.append((where, report.longreprtext.rstrip()))
     elif report.skipped and isinstance(report.longrepr, tuple):
-        # (path, lineno, reason) — worth surfacing, since the usual reason for a
+        # (path, lineno, reason), worth surfacing, since the usual reason for a
         # skip here is that Postgres is not running.
         _skip_reasons[report.longrepr[2].removeprefix("Skipped: ")] += 1
 

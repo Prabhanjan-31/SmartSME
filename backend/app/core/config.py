@@ -88,9 +88,9 @@ class Settings(BaseSettings):
 
     # ---- Event dispatch -----------------------------------------------------
     #: How a published event reaches the workflow engine.
-    #:   "inline" — drained inside the request, so effects are visible the moment
+    #:   "inline": drained inside the request, so effects are visible the moment
     #:              the write returns. The default, and what the SPA expects.
-    #:   "celery" — handed to Redis and applied by a Celery worker. Higher
+    #:   "celery": handed to Redis and applied by a Celery worker. Higher
     #:              throughput; the write returns before effects are applied.
     event_dispatch: Literal["inline", "celery"] = "inline"
     redis_url: str = "redis://localhost:6379/0"

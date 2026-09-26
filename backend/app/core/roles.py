@@ -8,7 +8,7 @@ Two of the roles are platform-level and two are tenant-level:
   another one.
 
 The split between ``admin`` and ``owner`` is the important one: an admin may
-change a business's *configuration* — its profile, tax rate, workflow rules —
+change a business's *configuration* (its profile, tax rate, workflow rules)
 but never its *data*. No permission an admin holds can create, amend or delete a
 sale, purchase, expense, product or party.
 
@@ -43,7 +43,7 @@ class P:
 
     #: Read anything in the business: documents, catalogue, reports, events.
     DATA_READ = "data:read"
-    #: Record new business activity — sales, purchases, expenses, payments,
+    #: Record new business activity: sales, purchases, expenses, payments,
     #: stock adjustments and Smart Input drafts. Additive only. Includes
     #: settling one party's outstanding documents, which is the same act as
     #: taking their payments one by one.

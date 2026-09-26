@@ -12,7 +12,7 @@ The transactional outbox, the workflow rule engine, and inline vs Celery.
 
 Every event records the user behind it (`events.user_id`, migration `0004`), and
 the Event bus page shows it as a **By** column. That is what makes the outbox an
-audit trail rather than a log — it only became meaningful once a business could
+audit trail rather than a log. It only became meaningful once a business could
 have more than one account.
 
 The actor is passed explicitly, the same way `business_id` already is, rather
@@ -79,7 +79,7 @@ write + event  --commit-->  Postgres (source of truth)
 ### inline (the default)
 
 `drain_queue()` follows the whole chain inside the request: a sale emits
-`SALE_CREATED`, which moves stock, which may raise a low-stock alert — and all
+`SALE_CREATED`, which moves stock, which may raise a low-stock alert, and all
 of it lands before the client sees its `201`. The SPA depends on this: it
 reloads a page after a write and expects the new stock to be there.
 
@@ -115,7 +115,7 @@ transaction as the business data, so:
 - an event can never exist for a write that rolled back, and
 - a write can never be silently missed, even if Redis is down at that moment.
 
-If the enqueue fails, the request still succeeds — the row is already committed
+If the enqueue fails, the request still succeeds, since the row is already committed
 as `pending`, and **the beat sweep re-delivers it** once the broker is back. An
 event that has sat pending for `CELERY_STRANDED_SECONDS` is considered stranded
 and re-queued; fresher ones are left alone, because their enqueue may still be
@@ -141,7 +141,7 @@ duplicated by Celery's own retry machinery.
 
 An event applied by a worker can raise more events, inside the worker's own
 transaction, where no request is around to enqueue them. The task hands those
-on itself as soon as its transaction commits — so the whole chain a single click
+on itself as soon as its transaction commits, so the whole chain a single click
 set off completes in milliseconds rather than waiting for the next sweep.
 
 ---

@@ -76,7 +76,7 @@ const FILTERS = [
 ];
 
 /** Orders that arrived by email or Telegram, waiting to be confirmed. Nothing
- *  here has touched the books yet — that is what Record does. */
+ *  here has touched the books yet. That is what Record does. */
 export function Inbox() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
@@ -89,7 +89,7 @@ export function Inbox() {
   const can = useCan();
 
   // The page is a queue, so it refreshes itself. "Check now" stays, but only
-  // to force a sweep this second rather than waiting for the next one — it is
+  // to force a sweep this second rather than waiting for the next one. It is
   // not how you find out something arrived. Paused while a message is open or
   // a decision is in flight, so the list never moves under a click.
   const busy = open !== null || pending;
@@ -136,7 +136,7 @@ export function Inbox() {
         <p className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
           <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
           <span>
-            <strong>No channel is switched on</strong>, so nothing is being collected — mail can sit
+            <strong>No channel is switched on</strong>, so nothing is being collected, mail can sit
             in the mailbox unread and this page will look the same as an empty one. Start with{" "}
             <code className="font-mono">{".\\run-dev.ps1 -WithEmail"}</code>, or set{" "}
             <code className="font-mono">EMAIL_INGEST_ENABLED=true</code> and{" "}
@@ -151,7 +151,7 @@ export function Inbox() {
           Collecting from <strong>{data.channels.email ? "email" : "Telegram"}</strong> only.{" "}
           {data.channels.email
             ? "Telegram is off until TELEGRAM_BOT_TOKEN is set."
-            : "Email is off until EMAIL_INGEST_ENABLED is true — start with -WithEmail."}
+            : "Email is off until EMAIL_INGEST_ENABLED is true. Start with -WithEmail."}
         </p>
       )}
 
@@ -184,7 +184,7 @@ export function Inbox() {
             description={
               data.pending
                 ? `${data.pending} waiting for review`
-                : "Nothing waiting — new orders appear here automatically"
+                : "Nothing waiting. New orders appear here automatically"
             }
           >
             {data.rows.length === 0 ? (

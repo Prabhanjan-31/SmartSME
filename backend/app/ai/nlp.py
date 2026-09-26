@@ -366,7 +366,7 @@ def heuristic_parse(text: str) -> ParsedCommand:
     correct anything before it is published.
 
     The note is first rewritten into its English shape by `lang.normalize`, so
-    Hindi and Kannada — in their own scripts or typed in Latin letters — reach
+    Hindi and Kannada, in their own scripts or typed in Latin letters, reach
     the same rules as English. Names and products are left in whatever script
     they were written in, to be matched against the catalogue as-is.
     """

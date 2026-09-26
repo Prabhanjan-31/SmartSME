@@ -1,6 +1,6 @@
 """Small admin commands.
 
-Platform accounts deliberately have no sign-up route — a superuser can read and
+Platform accounts deliberately have no sign-up route: a superuser can read and
 change every business on the instance, so creating one is an operator action
 taken at the console, not something reachable over HTTP.
 

@@ -1,7 +1,7 @@
 """Turning an arriving message into a reviewable draft.
 
-Every channel reduces to the same four facts — who sent it, what it says, a
-stable id, and which business it belongs to — and from there the path is shared:
+Every channel reduces to the same four facts (who sent it, what it says, a
+stable id, and which business it belongs to), and from there the path is shared:
 
     fetch -> route to a business -> parse with the Smart Input engine
           -> store as `pending` -> a person accepts it on the Inbox page
@@ -71,7 +71,7 @@ class IncomingMessage:
 def route(db: Session, message: IncomingMessage) -> uuid.UUID | None:
     """Which business this message belongs to, if any.
 
-    A message that cannot be routed is dropped rather than guessed at — putting
+    A message that cannot be routed is dropped rather than guessed at. Putting
     a stranger's order into somebody's books would be worse than losing it.
     """
     if message.business_id is not None:

@@ -31,7 +31,7 @@ const AUTH_PATHS = ["/auth/sign-in", "/auth/sign-up", "/auth/accept-invite"];
  *
  * The distinction matters because the two need opposite handling. A session
  * that expired mid-use should bounce you to the sign-in page. A *wrong
- * password* is the sign-in page's own answer, and bouncing there reloads it —
+ * password* is the sign-in page's own answer, and bouncing there reloads it,
  * which threw away the error message before it could render, so a mistyped
  * password looked like the page had simply blinked.
  */
@@ -78,7 +78,7 @@ function withBusiness(path: string): string {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = withBusiness(path);
   // Only a JSON body gets a JSON content type. A file upload sends FormData,
-  // and the browser has to set `multipart/form-data; boundary=...` itself —
+  // and the browser has to set `multipart/form-data; boundary=...` itself,
   // the boundary is generated per request and nothing else can supply it.
   // Stamping application/json over it meant the server saw JSON containing a
   // multipart payload, found no `file` field, and answered 422 "Field

@@ -53,8 +53,8 @@ export function PickBusiness({ onPick }: { onPick: (id: string) => void }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Choose a business</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your account is not tied to one business. Pick the one you want to work in — you can
-          switch at any time from the sidebar.
+          Your account is not tied to one business. Pick the one you want to work in. You can switch
+          at any time from the sidebar.
         </p>
       </div>
 

@@ -4,7 +4,7 @@
  * This file exists because a bug lived here undetected: `request()` set
  * `Content-Type: application/json` whenever a body was present, including when
  * that body was a `FormData`. The browser then never set its own
- * `multipart/form-data; boundary=...` — and the boundary is generated per
+ * `multipart/form-data; boundary=...`, and the boundary is generated per
  * request, so nothing else can supply it. FastAPI found no `file` field and
  * answered 422 "Field required". Image upload never worked from the UI.
  *

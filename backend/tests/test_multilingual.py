@@ -1,7 +1,7 @@
 """Hindi and Kannada input, in their own scripts and in Latin letters.
 
-The same note is written four ways — English, Devanagari or Kannada script, and
-the romanised form a shopkeeper actually types on a phone — and must come out of
+The same note is written four ways (English, Devanagari or Kannada script, and
+the romanised form a shopkeeper actually types on a phone) and must come out of
 the parser as the same business event. Names and products are checked to survive
 in the script they were written in, because that is how they are stored in the
 catalogue and how the fuzzy matcher will find them.

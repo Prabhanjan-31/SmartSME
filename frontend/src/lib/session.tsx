@@ -1,7 +1,7 @@
 /**
  * Who is signed in, and what they are allowed to do.
  *
- * The permission list comes from the server with the session — the client never
+ * The permission list comes from the server with the session. The client never
  * derives it from the role name, so the two can never drift. This is for
  * *hiding* things only: every rule is enforced again on the API, and the UI
  * gating is a courtesy so nobody clicks a button that will 403.

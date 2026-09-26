@@ -16,7 +16,7 @@ degrade cleanly instead of failing.
 
 It used to accept Anthropic, any OpenAI-compatible endpoint, and Groq as well.
 None was ever configured, and carrying them cost four sets of settings, four
-code paths and four pinned model names to go stale — two of which were silently
+code paths and four pinned model names to go stale, two of which were silently
 returning 404 before anyone checked. Swapping providers later is a contained
 change: one `complete()` implementation and the settings behind it.
 
@@ -53,7 +53,7 @@ Two things it does beyond swapping words:
 - **Native digits become numbers.** ೫ and ५ are 5; a quantity is useless
   otherwise.
 - **Word order is repaired.** Hindi and Kannada mark the recipient *after* the
-  name — "Anita ko", "ಅನಿತಾಗೆ" — where English puts a preposition before it.
+  name, as in "Anita ko", "ಅನಿತಾಗೆ", where English puts a preposition before it.
   Kannada glues it on as a suffix, which is why the vocabulary is applied first:
   ಬಾಡಿಗೆ means "rent" and happens to end in ಗೆ ("to"), and splitting it would
   invent a customer called ಬಾಡಿ.
@@ -172,7 +172,7 @@ Dates accept `20th August 2026`, `20 aug`, `3 sept`, `August 20 2026`,
 date stated it defaults to today. Impossible dates (31 Feb) are rejected, and a
 bare day+month rolls back a year rather than landing in the future.
 
-### Images — two engines (`app/ai/ocr.py`, `app/ai/ocr_space.py`)
+### Images: two engines (`app/ai/ocr.py`, `app/ai/ocr_space.py`)
 
 A photographed order slip is read by whichever engine is configured, and both
 options are free:
@@ -182,8 +182,8 @@ options are free:
 | 1st choice | **Vision model** (`GOOGLE_API_KEY`) | yes | **yes** | free tier, no card |
 | fallback | **OCR.space** (`OCR_SPACE_API_KEY`) | yes | **no** | free, 25k pages/month |
 
-Both return the same `ParsedInvoice` — `party`, `phone`, `docType`,
-`lineItems`, `total`, `date`, `discount` — so everything downstream is shared.
+Both return the same `ParsedInvoice` (`party`, `phone`, `docType`,
+`lineItems`, `total`, `date`, `discount`), so everything downstream is shared.
 
 **The strikethrough is the whole reason for the ordering**, and it is not
 hypothetical. Of twelve real slips in `backend/tests/fixtures`, three have an
@@ -195,7 +195,7 @@ S. Khan   5 bags  W̶h̶e̶a̶t̶  Atta             read literally: product "Whe
 A. Sharma 4 bags  P̶r̶o̶d̶u̶c̶t̶ ̶B̶               read literally: a cancelled item ordered
 ```
 
-OCR.space reads every one of those slips *accurately* — its text is nearly
+OCR.space reads every one of those slips *accurately*. Its text is nearly
 perfect, names and numbers included. It simply cannot represent a strikethrough,
 because that is not a character. The vision model can be told to ignore
 cancelled text, and on all three slips it does.
@@ -219,15 +219,15 @@ cd backend
 ### Grounding (`app/smart_input.py`)
 Both paths then run the same matching step:
 
-- **Phone matching first** (images only) — an order slip carries a phone
+- **Phone matching first** (images only): an order slip carries a phone
   number, and it is the only exact key on it. `party_by_phone()` compares the
   last ten digits, so `+91 98800 11223` and `098800-11223` are one customer.
   This matters more than it sounds: a slip signed "Latha" belongs to a shop
   filed as "Lathamma Provisions", which no name matching would ever find.
-- **Party matching** — `best_match()` then tries exact, whole-word, by meaning,
+- **Party matching**: `best_match()` then tries exact, whole-word, by meaning,
   and by consonants, across all three scripts. See
   [Matching across scripts](#matching-across-scripts).
-- **Direction correction** — a matched party's own type is authoritative, so a
+- **Direction correction**: a matched party's own type is authoritative, so a
   named customer forces `sale` even if the model guessed `purchase`.
 - **Product matching** against the catalogue, falling back to a custom line.
 - **"Entire inventory"** expands to one line per in-stock product.

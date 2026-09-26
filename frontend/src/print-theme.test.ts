@@ -4,7 +4,7 @@
  * The dark palette lives inside `@media screen`, so the print stylesheet never
  * sees it and the light values on `:root` are what reaches the printer. It is
  * a structural property of one file, invisible at a glance, and easy to undo by
- * accident — someone tidies `index.css`, the `.dark` block drifts out of the
+ * accident: someone tidies `index.css`, the `.dark` block drifts out of the
  * media query, and invoices silently start printing on a near-black background
  * that eats a toner cartridge and reads badly.
  *

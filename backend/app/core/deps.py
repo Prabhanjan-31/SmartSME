@@ -4,7 +4,7 @@ a set of permissions.
 Three layers, each building on the last:
 
 ``SessionUser``
-    Signed in. The business may be ``None`` — a superuser or admin belongs to
+    Signed in. The business may be ``None``: a superuser or admin belongs to
     none. Only the auth routes use this.
 
 ``CurrentUser``
@@ -140,7 +140,7 @@ def require(*permissions: str):
 
 
 def require_global(*permissions: str):
-    """Like `require`, but for routes that are not about one business — listing
+    """Like `require`, but for routes that are not about one business, such as listing
     the tenants, for instance. Checks the permission without resolving a
     business, so it works for a platform role that has not named one."""
 

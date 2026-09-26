@@ -3,8 +3,8 @@
 The whole path, with no network: a raw email or a Telegram update goes in, the
 Smart Input engine parses it, it waits in the review queue, a person accepts it,
 and a real sale exists with stock moved. The channel adapters are exercised
-against their real payload shapes — an RFC-822 message and a Telegram `getUpdates`
-response — rather than against a convenient stub.
+against their real payload shapes (an RFC-822 message and a Telegram `getUpdates`
+response) rather than against a convenient stub.
 
 The safety property these mostly protect: **nothing external writes to the books
 on its own.** Every test that records something records it through an accept
@@ -158,7 +158,7 @@ def test_html_only_mail_is_reduced_to_its_text(client, workspace, inbox_token):
 
 def test_mail_with_no_token_is_dropped(client, workspace):
     """An order addressed to nobody in particular must not land in someone's
-    queue — guessing the business would be worse than losing the mail."""
+    queue. Guessing the business would be worse than losing the mail."""
     with SessionLocal() as db:
         assert _deliver(db, _raw_email("someone@smartsme.local", "Order", "3 Cooking Oil")) is None
 
@@ -256,7 +256,7 @@ def test_an_unlinked_chat_is_dropped(client, workspace):
 
 
 def test_two_messages_from_one_chat_both_arrive(client, workspace, inbox_token):
-    """The dedup key is the message, not the chat — an easy thing to get wrong,
+    """The dedup key is the message, not the chat, an easy thing to get wrong,
     and it would silently accept only the first order a customer ever sent."""
     with SessionLocal() as db:
         _link_chat(db, "4242", inbox_token, "Anita")
@@ -337,7 +337,7 @@ def test_accepting_records_a_real_sale(client, workspace, inbox_token):
 def test_pending_count_is_what_the_badge_polls(client, employee_client, workspace, inbox_token):
     """The sidebar badge's one query: cheap, and visible to everyone signed in.
 
-    Both the owner and the employee need it — an order belongs to the shop, not
+    Both the owner and the employee need it: an order belongs to the shop, not
     to whoever happened to be looking at the Inbox when it arrived.
     """
     assert client.get("/api/inbox/pending-count").json() == {"pending": 0}
@@ -358,8 +358,8 @@ def test_pending_count_is_what_the_badge_polls(client, employee_client, workspac
 def test_the_recorded_source_names_the_channel(client, workspace, inbox_token):
     """An emailed order says "email", a Telegram order says "telegram".
 
-    Everything inbound used to land as "nlp" — the same badge a typed note
-    gets — so the ledger could not answer "where did this order come from?",
+    Everything inbound used to land as "nlp", the same badge a typed note
+    gets, so the ledger could not answer "where did this order come from?",
     which is the first thing anyone asks when a figure looks wrong.
     """
     with SessionLocal() as db:

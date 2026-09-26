@@ -153,7 +153,7 @@ def collect_now(ctx: CurrentUser, db: Db) -> dict:
 def accept(message_id: uuid.UUID, payload: dict[str, Any], ctx: CurrentUser, db: Db) -> dict:
     """Record the message as a real document.
 
-    The body is the (possibly corrected) draft from the review screen — the
+    The body is the (possibly corrected) draft from the review screen. The
     person accepting can fix anything the parser got wrong first, which is the
     whole point of the queue.
     """

@@ -61,7 +61,7 @@ export function Join() {
       <AuthLayout>
         <h1 className="text-[1.75rem] font-bold tracking-[-0.03em]">Invitation expired</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This link is no longer valid. Invitations last seven days and can only be used once — ask
+          This link is no longer valid. Invitations last seven days and can only be used once. Ask
           whoever invited you to send a new one.
         </p>
         <p className="mt-6 text-sm text-muted-foreground">

@@ -242,7 +242,7 @@ function InviteModal({
               Send this link to <span className="font-medium text-foreground">{email}</span>. It
               works once and expires in seven days.
             </p>
-            {/* Shown here and nowhere else — the server only keeps its hash. */}
+            {/* Shown here and nowhere else: the server only keeps its hash. */}
             <div className="flex items-center gap-2">
               <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
               <Button

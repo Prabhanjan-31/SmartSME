@@ -11,12 +11,12 @@ Harness, data format and how to run it: [backend/eval](../backend/eval/README.md
 
 ## Method in one paragraph
 
-Every input has a **gold label** — the correct answer, written down by a person
+Every input has a **gold label**, the correct answer, written down by a person
 before any system saw it. The harness runs each input through the same functions
 the application uses, compares the result to its label, and counts. Per-field
 precision, recall and F1; plus **exact**, the share of inputs where every field
 was right, which is the share a shopkeeper could accept without editing
-anything. A wrong answer costs twice — once as a miss, once as a fabrication —
+anything. A wrong answer costs twice, once as a miss and once as a fabrication,
 because a wrong customer is worse than no customer.
 
 Last run: 2026-09-16. Regenerate with `python -m eval` from `backend`.
@@ -39,13 +39,13 @@ By language variant, exact-match:
 | Kannada script | 11 | 100.0% | 100.0% |
 
 **What this says.** The offline parser is competitive on well-formed notes and
-falls behind on messy ones — no verb, no capitals, typos, two items on a line —
+falls behind on messy ones: no verb, no capitals, typos, two items on a line.
 which is where English and Hinglish lose their points. Both native scripts score
 at or near 100% for both engines, because [`app/ai/lang.py`](../backend/app/ai/lang.py)
 normalises the sentence before either engine sees it; that work is shared, so it
 does not distinguish them.
 
-**What this does not say.** These notes are **synthetic** — written by the same
+**What this does not say.** These notes are **synthetic**, written by the same
 author as the parser. The first fifty scored 100% on the heuristic, which says
 more about who wrote them than about the parser; twenty deliberately messier
 ones brought it to 85.7%. Numbers from author-written data cannot tell you how
@@ -65,7 +65,7 @@ Split by whether the customer corrected something on the paper:
 | Vision model | 9 / 9 | **3 / 3** |
 | OCR.space | 9 / 9 | **0 / 3** |
 
-**This is the finding.** Both engines read the handwriting accurately — party
+**This is the finding.** Both engines read the handwriting accurately: party
 and phone are perfect for both, and character OCR gets every clean slip. The
 entire difference is the three slips where something was struck out and
 rewritten:
@@ -77,14 +77,14 @@ A. Sharma  4 bags  P̶r̶o̶d̶u̶c̶t̶ ̶B̶              read literally: a ca
 ```
 
 A strikethrough is not a character, so it cannot survive character recognition.
-No post-processing recovers information that never entered the text — the
+No post-processing recovers information that never entered the text. The
 failure is structural, not a tuning problem. A vision model can be *told* to
 ignore cancelled text, and on all three it is.
 
 Three of twelve slips in an **unplanned** sample carried a correction, so this
 is not an edge case; correcting an order in place is just how people write on
 paper. It is also the reason the vision path is tried first and the free OCR
-path is labelled by name on the confirm screen — so whoever reviews a draft
+path is labelled by name on the confirm screen, so whoever reviews a draft
 knows a cancelled line could be sitting in it.
 
 ## Consistency: does the same note give the same draft?
@@ -137,7 +137,7 @@ inside the measurement. A single uncontended call is ~1-2 s.
    `Ph no:⇥9443311220`.
 3. **A name and a phone merged onto one line** were read as one very long
    customer name.
-4. **A bug in the harness itself** — `300` and `300.0` compared unequal as text,
+4. **A bug in the harness itself**: `300` and `300.0` compared unequal as text,
    so a correct extraction was reported as a failure.
 
 The harness also caught itself being misled: on the first real run, **38 of 70

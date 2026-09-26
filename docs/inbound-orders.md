@@ -23,7 +23,7 @@ what becomes of a message - accepting, dismissing, or fetching more - needs
 decision about a business's data, not part of configuring it. Deleting from the
 queue needs `data:manage`, like any other destruction.
 
-Once accepted, the document records **which channel it arrived on** — its
+Once accepted, the document records **which channel it arrived on**. Its
 Source column reads `Email` or `Telegram`, not the `AI · Text` a typed note
 gets. The channel is taken from the stored message, not from the draft the
 review screen sends back, so correcting a draft cannot relabel where it came
@@ -38,7 +38,7 @@ own thread so a mail server nobody can reach cannot stall the event worker. In
 celery mode the same work is a beat task instead.
 
 What was missing was the telling. The sidebar now polls `GET
-/api/inbox/pending-count` — one indexed `COUNT`, `data:read` — every 20 seconds
+/api/inbox/pending-count` (one indexed `COUNT`, `data:read`) every 20 seconds
 from whatever page is open, and puts the number on the **Inbox** entry and in
 the browser tab title, so an order finds the shopkeeper rather than waiting to
 be found. The count refreshes immediately when a backgrounded tab comes
@@ -46,7 +46,7 @@ forward, since browsers throttle timers in tabs nobody is looking at. The Inbox
 page itself refreshes every 15 seconds while open, pausing whenever a message
 is open for review so the list cannot move under a click.
 
-**Check now** stays, but it is no longer how you learn something arrived — it
+**Check now** stays, but it is no longer how you learn something arrived. It
 only skips the wait for the next sweep.
 
 ### When two people have the Inbox open
@@ -57,7 +57,7 @@ and employee see the same queued message, and either may accept it.
 
 Whoever clicks first wins. The row is read `FOR UPDATE`, so a second accept
 waits for the first to commit, then finds the message already `accepted` and
-gets `409 — This message has already been dealt with.` The order is recorded
+gets `409, This message has already been dealt with.` The order is recorded
 once, by one of them, and `handledBy`/`handledAt` say which. Neither page
 refreshes itself, so the loser sees the 409 rather than the button vanishing;
 reloading shows the accepted row.
@@ -187,7 +187,7 @@ official API.
 > **A bot for this project already exists.** If you are testing SmartSME rather
 > than deploying your own, ask for the existing `TELEGRAM_BOT_TOKEN`, skip step
 > 1, and carry on from step 2. Telegram allows **one poller per bot**, so only
-> one machine should be running with that token at a time — a second one logs a
+> one machine should be running with that token at a time. A second one logs a
 > `409 Conflict` and receives nothing.
 
 **1. Make a bot.** In the Telegram app (phone or desktop):

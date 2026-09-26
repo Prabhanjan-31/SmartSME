@@ -8,7 +8,7 @@ const POINTS = [
 ];
 
 /** The shared shell for sign-in and sign-up: a lime brand panel beside the
- *  form. The brand panel keeps its colour in both themes — it *is* the brand —
+ *  form. The brand panel keeps its colour in both themes, because it *is* the brand,
  *  while the form panel follows the app surface, so the split reads the same
  *  whether the user is in light or dark mode.
  *

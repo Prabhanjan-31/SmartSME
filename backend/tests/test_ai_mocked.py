@@ -1,8 +1,8 @@
 """The AI path, with the model faked.
 
 These cover the code around the provider rather than the model itself: which
-provider gets picked, what the prompt asks for, and — the part that actually
-breaks in production — what happens when the model answers badly. Models wrap
+provider gets picked, what the prompt asks for, and, the part that actually
+breaks in production, what happens when the model answers badly. Models wrap
 JSON in markdown, trail off mid-object, invent fields, and return prose when
 asked for none of it, so every one of those is exercised here.
 
@@ -142,7 +142,7 @@ def test_the_prompt_carries_the_note_and_todays_date(fake_provider):
 
 def test_the_prompt_asks_for_hindi_and_kannada(fake_provider):
     """The model is told about the languages, and told to leave names in the
-    script they arrived in — the catalogue is matched against them raw."""
+    script they arrived in. The catalogue is matched against them raw."""
     fake_provider["reply"]["text"] = '{"eventType": "SALE_CREATED"}'
     nlp.parse_command("ಅನಿತಾಗೆ ೫ ಕಿಲೋ ಅಕ್ಕಿ ಮಾರಿದೆ")
     call = fake_provider["calls"][0]

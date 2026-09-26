@@ -11,7 +11,7 @@ Indexes, pagination, pool sizing, and driving the whole app with Locust.
 ### Indexes
 
 Postgres does not index a foreign key for you, so until migration `0003` every
-query scoped to one business — which is every query in the app — was a
+query scoped to one business, which is every query in the app, was a
 sequential scan over the whole table. Measured on 200,000 sales across 50
 businesses, for the query behind the sales list:
 
@@ -22,7 +22,7 @@ businesses, for the query behind the sales list:
 
 The indexes are listed in `alembic/versions/0003_tenant_indexes.py`. Each one
 matches a real access path: the leading column is the tenant filter, the
-trailing one the sort or join, so the planner satisfies both from the index —
+trailing one the sort or join, so the planner satisfies both from the index.
 `(business_id, date DESC)` for the document lists, `(business_id, name)` for the
 catalogue, `(sale_id)` for line items.
 
@@ -41,7 +41,7 @@ and a cursor would buy accuracy under concurrent inserts that nobody here would
 notice.
 
 **Totals are aggregated in SQL, not summed from the returned rows.** That is the
-part worth remembering — the rows are now one page of the set, so summing them
+part worth remembering: the rows are now one page of the set, so summing them
 would make a dashboard quietly report one page's worth of money. `tests/test_pagination.py`
 asserts that asking for `pageSize=1` returns identical statistics to asking for
 all of them.

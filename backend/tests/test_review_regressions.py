@@ -1,6 +1,6 @@
 """Regressions for bugs a pre-push review caught.
 
-Each of these passed review by reading the code, not by failing a test — which
+Each of these passed review by reading the code, not by failing a test, which
 is the point of writing them down. Every one is a thing that was shipped-ready
 and wrong.
 """
@@ -49,7 +49,7 @@ def _deliver(db, to: str, subject: str, body: str):
 # ---------------------------------------------------------------------------
 def test_an_emailed_purchase_is_recorded_as_a_purchase(client, workspace, inbox_token):
     """`publish_draft` read `payload["type"]`, but a draft names that field
-    `suggestedType`, so every accepted message defaulted to a sale — an inbound
+    `suggestedType`, so every accepted message defaulted to a sale, an inbound
     purchase took stock *out* instead of putting it in."""
     with SessionLocal() as db:
         row = _deliver(
@@ -114,7 +114,7 @@ def test_publish_draft_accepts_either_field_name(client, workspace):
 # ---------------------------------------------------------------------------
 def test_a_kannada_name_matches_a_kannada_catalogue_entry(client):
     """`_norm` stripped every non-ASCII character, so a Devanagari or Kannada
-    name normalised to "" and matched nothing — the multilingual parser could
+    name normalised to "" and matched nothing. The multilingual parser could
     read a name it could never resolve."""
     from app.smart_input import best_match
 

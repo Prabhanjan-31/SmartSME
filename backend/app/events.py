@@ -40,8 +40,8 @@ def publish(
 ) -> Event:
     """Append an event inside the caller's transaction (do not commit here).
 
-    `actor_id` is the user who caused it. A chained event — one raised while
-    processing another — passes the parent's actor through, so the whole chain
+    `actor_id` is the user who caused it. A chained event, one raised while
+    processing another, passes the parent's actor through, so the whole chain
     that a single click set off is attributed to the person who clicked.
     """
     event = Event(

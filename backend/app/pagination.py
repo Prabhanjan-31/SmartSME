@@ -3,7 +3,7 @@
 Offset rather than cursor, deliberately: the SPA shows numbered pages over data
 that is almost always sorted by a business date, and a cursor would buy accuracy
 under concurrent inserts that nobody here would notice. If a list ever grows to
-the point where `OFFSET` hurts — tens of thousands of pages deep — this is the
+the point where `OFFSET` hurts (tens of thousands of pages deep), this is the
 one module that has to change.
 
 Totals and other statistics are aggregated in SQL rather than summed from the

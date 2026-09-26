@@ -124,7 +124,7 @@ def test_celery_mode_enqueues_rather_than_processing(
 
 def test_the_task_applies_the_event_and_passes_the_chain_on(client, workspace, captured_enqueue):
     """A sale chains STOCK_UPDATED from inside the worker, where nothing has
-    enqueued it — the task has to hand the follow-up on itself."""
+    enqueued it. The task has to hand the follow-up on itself."""
     from app.tasks import process_event
 
     before = _stock(uuid.UUID(workspace["productId"]))

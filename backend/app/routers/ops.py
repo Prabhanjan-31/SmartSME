@@ -216,7 +216,7 @@ def list_notifications(
     rows = list(db.scalars(slice_of(listing, paging)))
 
     # Resolve every alert's origin in one pass: which rule fired, on which
-    # event, and — through the event — who caused it.
+    # event, and, through the event, who caused it.
     rule_ids = {n.rule_id for n in rows if n.rule_id}
     event_ids = {n.event_id for n in rows if n.event_id}
     rules = (

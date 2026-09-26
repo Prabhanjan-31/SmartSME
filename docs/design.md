@@ -10,7 +10,7 @@ Colour, type, spacing and the component vocabulary.
 
 Tailwind v4 with CSS custom properties in `frontend/src/index.css`. Light is the
 default; a `.dark` class on `<html>` flips the tokens, set before paint by an
-inline script to avoid a flash. No component library — `src/components/ui/*` holds
+inline script to avoid a flash. No component library: `src/components/ui/*` holds
 small primitives (Button, Card, Table, Modal, Input, Badge) and
 `src/components/Icon.tsx` is a dependency-free stroke icon set.
 
@@ -33,8 +33,8 @@ the floor and reads as grey. A calm UI colour and a legible data colour are not
 the same requirement.
 
 The sign-in and sign-up pages share `src/components/AuthLayout.tsx`: a lime brand
-panel beside the form. The panel keeps its colour in both themes — it *is* the
-brand — while the form panel follows the app surface, and below `lg` it collapses
+panel beside the form. The panel keeps its colour in both themes, because it *is* the
+brand, while the form panel follows the app surface, and below `lg` it collapses
 to a banner above the form rather than disappearing.
 
 The sidebar is resizable by dragging the handle on its edge and collapses to an
@@ -42,7 +42,7 @@ icon-only rail when that handle is clicked; both the width and collapsed state
 persist.
 
 Data loading uses two small hooks in `src/lib/api.ts` (`useApi` for reads,
-`useMutation` for writes) rather than a data-fetching library — the app is almost
+`useMutation` for writes) rather than a data-fetching library, since the app is almost
 entirely "load a page, mutate, reload".
 
 ---

@@ -2,7 +2,7 @@
 
 The raw token is shown to the inviter exactly once, in the response that creates
 the invitation, and only its SHA-256 is stored. A token is high-entropy random
-rather than a password, so a plain hash is enough — there is nothing to brute
+rather than a password, so a plain hash is enough: there is nothing to brute
 force and nothing to salt against.
 """
 

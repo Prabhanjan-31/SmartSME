@@ -1,7 +1,7 @@
 """The Celery application.
 
 Redis is the broker only. The transactional outbox in Postgres stays the source
-of truth — an event is committed in the same transaction as the business data it
+of truth. An event is committed in the same transaction as the business data it
 describes, and Celery is the thing that gets told to go and apply it. That
 ordering is what keeps the guarantee that an event can never exist for a write
 that rolled back, and a write can never be silently missed:

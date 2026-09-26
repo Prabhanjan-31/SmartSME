@@ -33,7 +33,7 @@ def process_event(self, event_id: str) -> str:
     """
     eid = uuid.UUID(event_id)
     if not claim(eid):
-        # Someone else got there first — an inline drain, another worker, or a
+        # Someone else got there first: an inline drain, another worker, or a
         # duplicate delivery. Not an error.
         return "skipped"
 

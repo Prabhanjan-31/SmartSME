@@ -14,14 +14,14 @@ Python process.
 
 ```
 Browser ──► Vercel (frontend/dist, static)
-               │  /api/* rewritten (vercel.json) — same origin, cookie stays first-party
+               │  /api/* rewritten (vercel.json), same origin, cookie stays first-party
                ▼
             Render / Railway / Fly  (uvicorn app.main:app)
                ▼
             Neon PostgreSQL
 ```
 
-### 1. Database — Neon
+### 1. Database: Neon
 
 Any managed PostgreSQL works; Neon is what was used here. The repo no longer
 carries a `neon.ts` - it was a leftover from the Next.js version and was removed
@@ -61,7 +61,7 @@ DATABASE_URL="postgresql+psycopg://…<unpooled host>…/neondb?sslmode=require"
 Verify: `SELECT version_num FROM alembic_version;` returns `0001_initial_schema`,
 and `information_schema.tables` lists the 14 business tables.
 
-### 2. Backend — Render, Railway or Fly
+### 2. Backend: Render, Railway or Fly
 
 Not Vercel: this app runs a background worker thread and holds a database
 connection pool across requests, neither of which survives in a serverless
@@ -85,11 +85,11 @@ GOOGLE_API_KEY="…"                         # optional, free; smarter NLP + OCR
 
 Health check: `GET /api/health`.
 
-### 3. Frontend — Vercel
+### 3. Frontend: Vercel
 
 The API client calls **relative** `/api/...` paths, so production needs those
 paths to resolve on the same origin. [`frontend/vercel.json`](../frontend/vercel.json)
-does that with a rewrite — edit `REPLACE-WITH-YOUR-BACKEND-HOST` to your step-2
+does that with a rewrite. Edit `REPLACE-WITH-YOUR-BACKEND-HOST` to your step-2
 host before the first deploy.
 
 - **Root Directory** `frontend`  ← set this in Project Settings, or the build fails

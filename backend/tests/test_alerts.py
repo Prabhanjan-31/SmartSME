@@ -2,7 +2,7 @@
 
 An alert that says "Low stock: Cooking Oil" is a message. One that also says
 which rule fired, on which event, and therefore who caused it, is a log you can
-audit — that is what these check.
+audit. That is what these check.
 """
 
 from __future__ import annotations

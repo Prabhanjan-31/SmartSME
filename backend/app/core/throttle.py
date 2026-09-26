@@ -6,7 +6,7 @@ Two independent limits:
   fifteen minutes, and every further five doubles it, up to a day. A successful
   sign-in ends the streak.
 * **Per IP.** A much larger budget across *all* addresses, which is what catches
-  password spraying — one guess each against a hundred accounts never trips the
+  password spraying: one guess each against a hundred accounts never trips the
   per-account limit.
 
 Employees are exempt from the per-account lock, by design: their accounts are a
@@ -14,8 +14,8 @@ poor target and locking one strands a shopkeeper's staff at the counter. They
 are still covered by the per-IP limit.
 
 An unknown email is throttled exactly like a real one. That costs nothing and
-means the lockout response cannot be used to tell which addresses have accounts
-— except that it does distinguish an *employee* from everything else, which is
+means the lockout response cannot be used to tell which addresses have accounts,
+except that it does distinguish an *employee* from everything else, which is
 the price of the exemption above.
 
 State lives in Postgres rather than in memory so that two API processes agree,
@@ -128,7 +128,7 @@ def _too_many(retry_after: timedelta) -> HTTPException:
 def check_sign_in_allowed(db: Session, email: str, ip: str | None) -> None:
     """Raise 429 when this email or IP has spent its budget.
 
-    Called before the password is checked, and a rejected call is not recorded —
+    Called before the password is checked, and a rejected call is not recorded,
     hammering a locked account does not extend the lock.
     """
     if _ip_failures(db, ip) >= settings.login_max_ip_attempts:

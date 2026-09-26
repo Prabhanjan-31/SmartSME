@@ -181,7 +181,7 @@ SmartSME/
 ```
 
 **Layer rules.** `core` never imports `models`, `domain` or `routers`, so it can be
-imported from anywhere without a cycle — which is why the declarative `Base` lives in
+imported from anywhere without a cycle, which is why the declarative `Base` lives in
 `models/base.py` rather than in `core/db.py`. `schemas` holds one payload per
 operation, shared by the router that receives it and the domain function that
 consumes it; `schemas.common.BusinessDate` accepts either a `yyyy-mm-dd` string from

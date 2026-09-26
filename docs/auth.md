@@ -27,19 +27,19 @@ no business; two are tenant-level and belong to exactly one.
 | Role | Scope | Can |
 |---|---|---|
 | **Superuser** | every business | everything |
-| **Admin** | every business | read anything, change a business's *configuration* — profile, tax rate, invoice prefix, workflow rules. Never its data. |
+| **Admin** | every business | read anything, change a business's *configuration*: profile, tax rate, invoice prefix, workflow rules. Never its data. |
 | **Business owner** | their own business | everything inside it, including the team |
 | **Employee** | their own business | record sales, purchases, expenses, payments, stock adjustments and Smart Input drafts; read the catalogue, dashboard and reports |
 
 The admin/owner line is the important one: **no permission an admin holds can
 create, amend or delete a sale, purchase, expense, product or party.** An
-employee is additive-only — they log what happened, and cannot cancel, delete
+employee is additive-only: they log what happened, and cannot cancel, delete
 or back-date it afterwards.
 
 Settling **one** party is on the additive side of that line: it is the payment
 an employee can already take against each of that party's bills, done in one
 click instead of six, so gating it harder protected nothing. Settling **every**
-receivable or payable at once stays with the owner — that writes off balances
+receivable or payable at once stays with the owner, which writes off balances
 for parties the person clicking never dealt with.
 
 Permissions are coarse (seven of them) rather than one per endpoint: a finer
@@ -59,13 +59,13 @@ Routes declare what they need, so the handler stays about the handler's job:
 
 An unrecognised role resolves to *no* permissions, so a typo in the column
 closes doors rather than opening them. The SPA hides what a role cannot use
-(`lib/session.tsx`), but every rule is enforced again on the API — the UI gating
+(`lib/session.tsx`), but every rule is enforced again on the API. The UI gating
 is only so nobody clicks a button that will 403.
 
 **Cross-tenant access.** A superuser or admin has `business_id = NULL` and names
 the business it is acting on with `?businessId=<uuid>`; the SPA keeps that
 choice in `lib/api.ts` and appends it to every request. A tenant role is pinned
-to its own business, and asking for another one returns 404 rather than 403 — so
+to its own business, and asking for another one returns 404 rather than 403, so
 the parameter cannot be used to discover other tenants.
 
 **Platform accounts have no sign-up route.** They are created at the console:
@@ -83,7 +83,7 @@ link, which the invitee opens to set their own name and password.
 
 Only the SHA-256 of the token is stored, so a leaked database cannot be used to
 accept an invitation. The raw token appears once, in the response that creates
-it — there is no mail transport here, so the link travels however the business
+it. There is no mail transport here, so the link travels however the business
 already reaches its staff. Invitations last seven days, work once, and can be
 revoked. A business can never lose its last owner.
 
@@ -91,9 +91,9 @@ revoked. A business can never lose its last owner.
 
 Two independent limits, in `app/core/throttle.py`:
 
-- **Per account** — five failures lock the address for fifteen minutes, and each
+- **Per account**: five failures lock the address for fifteen minutes, and each
   further five doubles it, up to a day. A successful sign-in ends the streak.
-- **Per IP** — twenty failures across *all* accounts in fifteen minutes. This is
+- **Per IP**: twenty failures across *all* accounts in fifteen minutes. This is
   what catches password spraying, which never trips the per-account limit.
 
 **Employees are exempt from the account lock**, by design: their accounts are a
@@ -101,7 +101,7 @@ poor target and locking one strands a shopkeeper's staff at the counter. They
 are still covered by the per-IP limit.
 
 An unknown email is throttled exactly like a real one, so the lockout response
-cannot be used to tell which addresses have accounts — with one caveat worth
+cannot be used to tell which addresses have accounts, with one caveat worth
 knowing: it does distinguish an *employee* from everything else, which is the
 price of the exemption above.
 

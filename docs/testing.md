@@ -35,32 +35,32 @@ cd backend
 
 Hooks in `tests/conftest.py` replace pytest's default report order. Pytest prints
 failures first and the counts last, so after a long run the thing you actually
-want has scrolled off; here a per-layer summary comes last, with the failures —
-full traceback and assertion diff — printed underneath it. A skip prints its
+want has scrolled off; here a per-layer summary comes last, with the failures,
+full traceback and assertion diff, printed underneath it. A skip prints its
 reason, which is almost always "Postgres is unreachable".
 
 Fourteen layers, in one run.
 
-**`tests/test_domain.py` — 42 unit tests, no database.** The maths and parsing the
+**`tests/test_domain.py`: 42 unit tests, no database.** The maths and parsing the
 money and Smart Input features depend on: discount-before-tax totals for sales and
 purchases, `round2` half-up rounding, line-item validation, the full date-phrase
 parser, discount extraction, the heuristic classifier, party/product fuzzy
 matching, report period resolution, and password hashing.
 
-**`tests/test_multilingual.py` — 46 tests over Hindi and Kannada.** The same
+**`tests/test_multilingual.py`: 46 tests over Hindi and Kannada.** The same
 note written five ways must produce the same event; native digits become
 numbers; postpositions are moved; names keep their script; and the awkward cases
-are pinned — ಬಾಡಿಗೆ is not split into "to ಬಾಡಿ", a product is not swallowed by
+are pinned: ಬಾಡಿಗೆ is not split into "to ಬಾಡಿ", a product is not swallowed by
 the party beside it, and a shop called "ABC Suppliers" is not read as "rs 10".
 
-**`tests/test_ai_mocked.py` — 24 tests over the AI path, model faked.** Provider
+**`tests/test_ai_mocked.py`: 24 tests over the AI path, model faked.** Provider
 selection and precedence, what the prompt asks for, and above all what happens
 when the model answers badly: markdown fences, prose around the JSON, truncated
 objects, wrong field types, a provider that raises. Every one must degrade to
 the built-in parser rather than reaching the shopkeeper. No network, no key, no
 cost.
 
-**`tests/test_alerts.py` — 9 tests over the alert log.** That an alert names its
+**`tests/test_alerts.py`: 9 tests over the alert log.** That an alert names its
 rule, event and author, that an employee's alert is attributed to the employee,
 the severity and unread filters, mark-unread, dismissal, bulk clear, and that a
 sourceless alert still renders.
@@ -80,27 +80,27 @@ leaves fresh ones alone, and that a broker which is down does not fail the write
 The broker is faked, so these run offline; one extra test talks to a real Redis
 and skips without one.
 
-**`tests/test_event_actor.py` — 6 tests over event authorship.** That a sale
+**`tests/test_event_actor.py`: 6 tests over event authorship.** That a sale
 names the person who made it, that a chained stock event inherits the same
 author, that an employee's work is attributed to them and not to the owner, and
 that authorless system events still serialize.
 
-**`tests/test_pagination.py` — 25 tests over paging.** That every list endpoint
+**`tests/test_pagination.py`: 25 tests over paging.** That every list endpoint
 returns an envelope, that pages do not overlap, that a page past the end is
 empty rather than an error, and above all that the statistics beside the rows
 still describe the whole set when the page is shrunk to one row.
 
-**`tests/test_rbac.py` — 27 tests over roles, invites and throttling.** Every
-role against the endpoints that matter for it, from both sides — what it may do
+**`tests/test_rbac.py`: 27 tests over roles, invites and throttling.** Every
+role against the endpoints that matter for it, from both sides: what it may do
 *and* what it must be refused, which is the half that actually proves anything.
 Covers the permission table itself, cross-tenant access, the invite round trip
 (including revoked and reused tokens), the last-owner guard, and the lockout:
 that an owner locks after five failures, that an employee never does, that a
 successful sign-in clears the streak, and that the lock doubles.
 
-**`tests/test_api_smoke.py` — 36 tests over every endpoint.** One pass across the
+**`tests/test_api_smoke.py`: 36 tests over every endpoint.** One pass across the
 whole HTTP surface: all 73 routes are called the way the SPA calls them and the
-response is checked for the shape the client relies on — routing, auth,
+response is checked for the shape the client relies on: routing, auth,
 serialization, the domain call behind each route, and the event effects that
 follow a write (a sale moves stock before the request returns; cancelling it puts
 the stock back; a workflow rule raises a notification). Error paths are part of
@@ -111,7 +111,7 @@ The smoke tests need Postgres, so start it first with `docker compose up -d`. Th
 never touch your development data:
 
 - `tests/conftest.py` drops and recreates a scratch **`smartsme_test`** database
-  beside the configured one, and runs `alembic upgrade head` into it — so the
+  beside the configured one, and runs `alembic upgrade head` into it, so the
   migrations are smoke-tested as well.
 - The demo seed is off and each run signs up its own business, so counts are
   deterministic.
