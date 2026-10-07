@@ -176,7 +176,8 @@ def _bulk_sales(
                     payment_status="paid",
                     source="form",
                     # Spread across a year so the date-ordered index has work.
-                    date=now - timedelta(minutes=random.randint(0, 525_600)),
+                    date=(when := now - timedelta(minutes=random.randint(0, 525_600))),
+                    due_date=when + timedelta(days=30),
                 )
                 rows.append(sale)
                 items.append(

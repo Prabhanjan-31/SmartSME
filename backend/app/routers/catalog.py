@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
@@ -118,6 +119,8 @@ def list_parties(ctx: CurrentUser, db: Db, paging: Paging) -> dict:
     # page. This used to read every sale and purchase the business had.
     outstanding: dict[str, list[dict]] = {}
 
+    now = datetime.now()
+
     def collect(rows, ref_attr: str) -> None:
         for row in rows:
             due = round2(row.total - row.amount_paid)
@@ -130,6 +133,8 @@ def list_parties(ctx: CurrentUser, db: Db, paging: Paging) -> dict:
                     "date": row.date.isoformat(),
                     "total": row.total,
                     "due": due,
+                    "dueDate": row.due_date.isoformat(),
+                    "overdue": row.due_date < now,
                 }
             )
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Text
+from sqlalchemy import Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, business_fk, money, pk, timestamp
@@ -28,4 +28,6 @@ class Party(Base):
     gst_number: Mapped[str | None] = mapped_column(Text)
     address: Mapped[str | None] = mapped_column(Text)
     balance: Mapped[float] = money()
+    #: Days this party gets to pay. Null means the business default applies.
+    credit_days: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = timestamp()

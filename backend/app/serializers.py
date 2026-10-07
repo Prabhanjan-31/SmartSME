@@ -6,12 +6,15 @@ snake_case.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from .core.utils import round2
 from .models import (
     Event,
     Expense,
     Notification,
     Party,
+    Payment,
     Product,
     Purchase,
     PurchaseItem,
@@ -23,6 +26,32 @@ from .models import (
 )
 
 
+def _money_state(doc: Sale | Purchase) -> dict:
+    """The payment side of a document: what is owed, by when, and whether
+    that day has passed."""
+    due = 0 if doc.status == "cancelled" else round2(doc.total - doc.amount_paid)
+    return {
+        "total": doc.total,
+        "amountPaid": doc.amount_paid,
+        "due": due,
+        "dueDate": doc.due_date.isoformat(),
+        "overdue": due > 0 and doc.due_date < datetime.now(),
+        "paymentStatus": doc.payment_status,
+    }
+
+
+def payment(p: Payment) -> dict:
+    return {
+        "id": str(p.id),
+        "amount": p.amount,
+        "reason": p.reason,
+        "date": p.date.isoformat(),
+        "mode": p.mode,
+        "reference": p.reference,
+        "details": p.details or {},
+    }
+
+
 def sale_row(sale: Sale, party_name: str | None) -> dict:
     return {
         "id": str(sale.id),
@@ -31,10 +60,7 @@ def sale_row(sale: Sale, party_name: str | None) -> dict:
         "partyName": party_name,
         "source": sale.source,
         "status": sale.status,
-        "total": sale.total,
-        "amountPaid": sale.amount_paid,
-        "due": 0 if sale.status == "cancelled" else round2(sale.total - sale.amount_paid),
-        "paymentStatus": sale.payment_status,
+        **_money_state(sale),
     }
 
 
@@ -61,7 +87,9 @@ def _party_brief(party: Party | None) -> dict | None:
     }
 
 
-def sale_detail(sale: Sale, party: Party | None, items: list[SaleItem]) -> dict:
+def sale_detail(
+    sale: Sale, party: Party | None, items: list[SaleItem], payments: list[Payment] = ()
+) -> dict:
     return {
         "id": str(sale.id),
         "invoiceNumber": sale.invoice_number,
@@ -74,13 +102,11 @@ def sale_detail(sale: Sale, party: Party | None, items: list[SaleItem]) -> dict:
         "discountValue": sale.discount_value,
         "discountAmount": sale.discount_amount,
         "tax": sale.tax,
-        "total": sale.total,
-        "amountPaid": sale.amount_paid,
-        "due": 0 if sale.status == "cancelled" else round2(sale.total - sale.amount_paid),
-        "paymentStatus": sale.payment_status,
+        **_money_state(sale),
         "notes": sale.notes,
         "party": _party_brief(party),
         "items": [line_item(i) for i in items],
+        "payments": [payment(p) for p in payments],
     }
 
 
@@ -92,16 +118,16 @@ def purchase_row(purchase: Purchase, party_name: str | None) -> dict:
         "partyName": party_name,
         "source": purchase.source,
         "status": purchase.status,
-        "total": purchase.total,
-        "amountPaid": purchase.amount_paid,
-        "due": 0
-        if purchase.status == "cancelled"
-        else round2(purchase.total - purchase.amount_paid),
-        "paymentStatus": purchase.payment_status,
+        **_money_state(purchase),
     }
 
 
-def purchase_detail(purchase: Purchase, party: Party | None, items: list[PurchaseItem]) -> dict:
+def purchase_detail(
+    purchase: Purchase,
+    party: Party | None,
+    items: list[PurchaseItem],
+    payments: list[Payment] = (),
+) -> dict:
     return {
         "id": str(purchase.id),
         "referenceNumber": purchase.reference_number,
@@ -114,15 +140,11 @@ def purchase_detail(purchase: Purchase, party: Party | None, items: list[Purchas
         "discountValue": purchase.discount_value,
         "discountAmount": purchase.discount_amount,
         "tax": purchase.tax,
-        "total": purchase.total,
-        "amountPaid": purchase.amount_paid,
-        "due": 0
-        if purchase.status == "cancelled"
-        else round2(purchase.total - purchase.amount_paid),
-        "paymentStatus": purchase.payment_status,
+        **_money_state(purchase),
         "notes": purchase.notes,
         "party": _party_brief(party),
         "items": [line_item(i) for i in items],
+        "payments": [payment(p) for p in payments],
     }
 
 
@@ -152,6 +174,7 @@ def party(p: Party) -> dict:
         "gstNumber": p.gst_number,
         "address": p.address,
         "balance": p.balance,
+        "creditDays": p.credit_days,
     }
 
 

@@ -74,6 +74,8 @@ class DocumentMixin:
     notes: Mapped[str | None] = mapped_column(Text)
     #: Business date of the transaction (back-datable).
     date: Mapped[datetime] = timestamp()
+    #: When the unpaid part is expected: `date` plus the party's credit days.
+    due_date: Mapped[datetime] = timestamp()
     #: When the row was written, which is not necessarily the business date.
     created_at: Mapped[datetime] = timestamp()
 

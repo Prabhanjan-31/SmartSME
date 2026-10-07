@@ -15,6 +15,7 @@ from .models import (
     Expense,
     Notification,
     Party,
+    Payment,
     Product,
     Purchase,
     PurchaseItem,
@@ -156,10 +157,22 @@ def seed_if_empty(db: Session) -> bool:
         payment_status="paid",
         source="form",
         date=sale1_when,
+        due_date=sale1_when + timedelta(days=30),
         created_at=sale1_when,
     )
     db.add(sale1)
     db.flush()
+    db.add(
+        Payment(
+            business_id=biz.id,
+            sale_id=sale1.id,
+            amount=sale1_total,
+            reason="sale",
+            date=sale1_when,
+            mode="upi",
+            reference="326514789012",
+        )
+    )
     db.add_all(
         [
             SaleItem(
@@ -197,6 +210,7 @@ def seed_if_empty(db: Session) -> bool:
         payment_status="unpaid",
         source="nlp",
         date=sale2_when,
+        due_date=sale2_when + timedelta(days=30),
         created_at=sale2_when,
     )
     db.add(sale2)
@@ -229,10 +243,23 @@ def seed_if_empty(db: Session) -> bool:
         payment_status="partial",
         source="form",
         date=pur_when,
+        due_date=pur_when + timedelta(days=30),
         created_at=pur_when,
     )
     db.add(pur1)
     db.flush()
+    db.add(
+        Payment(
+            business_id=biz.id,
+            purchase_id=pur1.id,
+            amount=round2(pur_total / 2),
+            reason="purchase",
+            date=pur_when,
+            mode="bank_transfer",
+            reference="HDFCN52026091412345",
+            details={"bank": "HDFC Bank"},
+        )
+    )
     db.add(
         PurchaseItem(
             purchase_id=pur1.id,

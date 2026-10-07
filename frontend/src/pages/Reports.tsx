@@ -20,6 +20,7 @@ interface Overview {
   };
   topProducts: { label: string; value: number; display: string }[];
   topCustomers: { label: string; value: number; display: string }[];
+  topSuppliers: { label: string; value: number; display: string }[];
   expenseByCategory: { label: string; value: number; display: string }[];
   currency: string;
 }
@@ -109,14 +110,15 @@ export function Reports() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Revenue</CardTitle>
+          <CardTitle>Trends</CardTitle>
+          <CardDescription>Sales, purchases or expenses over time.</CardDescription>
         </CardHeader>
         <CardContent>
-          <RevenueChart currency={cur} initialDays={30} />
+          <RevenueChart currency={cur} initialDays={30} showMetric />
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         <SectionCard title="Top products" description="By revenue">
           <div className="p-5">
             <BarList
@@ -135,6 +137,18 @@ export function Reports() {
             />
           </div>
         </SectionCard>
+        <SectionCard title="Top suppliers" description="By total bought">
+          <div className="p-5">
+            <BarList
+              items={data.topSuppliers}
+              colorVar="--chart-4"
+              emptyLabel="No supplier purchases yet."
+            />
+          </div>
+        </SectionCard>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard title="Expenses by category">
           <div className="p-5">
             <BarList

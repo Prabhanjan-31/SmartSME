@@ -183,6 +183,7 @@ def create_party(db: Session, business_id: uuid.UUID, data: PartyInput) -> Party
         gst_number=data.gstNumber or None,
         address=data.address or None,
         balance=float(data.openingBalance or 0),
+        credit_days=_credit_days(data.creditDays),
     )
     db.add(party)
     db.commit()
@@ -204,7 +205,17 @@ def update_party(
     party.email = data.email or None
     party.gst_number = data.gstNumber or None
     party.address = data.address or None
+    party.credit_days = _credit_days(data.creditDays)
     db.commit()
+
+
+def _credit_days(value: int | None) -> int | None:
+    """None keeps the business default; anything else must be a day count."""
+    if value is None:
+        return None
+    if value < 0 or value > 3650:
+        raise ValueError("Payment deadline must be between 0 and 3650 days.")
+    return int(value)
 
 
 def delete_party(db: Session, business_id: uuid.UUID, party_id: uuid.UUID) -> None:

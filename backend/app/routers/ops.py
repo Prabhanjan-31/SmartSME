@@ -365,6 +365,7 @@ def get_settings(ctx: CurrentUser) -> dict:
             "currency": b.currency,
             "taxRate": b.tax_rate,
             "invoicePrefix": b.invoice_prefix,
+            "creditDays": b.credit_days,
         },
         "ai": ai_status(),
     }
@@ -376,6 +377,10 @@ def update_settings(body: SettingsInput, ctx: CurrentUser, db: Db) -> dict:
         raise HTTPException(status_code=400, detail="Business name is required.")
     if not 0 <= body.taxRate <= 100:
         raise HTTPException(status_code=400, detail="Tax rate must be between 0 and 100.")
+    if not 0 <= body.creditDays <= 3650:
+        raise HTTPException(
+            status_code=400, detail="Payment deadline must be between 0 and 3650 days."
+        )
     b = db.merge(ctx.business)
     b.name = body.name.strip()
     b.gst_number = body.gstNumber or None
@@ -386,5 +391,6 @@ def update_settings(body: SettingsInput, ctx: CurrentUser, db: Db) -> dict:
     b.currency = body.currency or "INR"
     b.tax_rate = body.taxRate
     b.invoice_prefix = (body.invoicePrefix or "INV").strip()
+    b.credit_days = int(body.creditDays)
     db.commit()
     return {"ok": True}

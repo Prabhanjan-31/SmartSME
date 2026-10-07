@@ -13,10 +13,12 @@ import { PaymentBadge, SourceBadge } from "@/components/Status";
 import { Icon } from "@/components/Icon";
 import { LineItemsEditor, type EditorProduct, type LineRow } from "@/components/LineItemsEditor";
 import { RecordPaymentButton } from "@/components/RecordPaymentButton";
+import { PaymentModeFields } from "@/components/PaymentModeFields";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { EditDateButton } from "@/components/EditDateButton";
 import { Can, PERMISSIONS } from "@/lib/session";
-import { formatDate, money, toDateInputValue } from "@/lib/utils";
+import { formatDate, money, paymentReason, toDateInputValue } from "@/lib/utils";
+import { describePayment, emptyPayment, paymentProblem } from "@/lib/payments";
 
 interface SaleRow {
   id: string;
@@ -28,6 +30,8 @@ interface SaleRow {
   total: number;
   amountPaid: number;
   due: number;
+  dueDate: string;
+  overdue: boolean;
   paymentStatus: string;
 }
 
@@ -55,6 +59,8 @@ interface SaleDetail {
   total: number;
   amountPaid: number;
   due: number;
+  dueDate: string;
+  overdue: boolean;
   paymentStatus: string;
   notes: string | null;
   party: { name: string; phone: string | null; gstNumber: string | null } | null;
@@ -64,6 +70,15 @@ interface SaleDetail {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+  }[];
+  payments: {
+    id: string;
+    amount: number;
+    reason: string;
+    date: string;
+    mode: string | null;
+    reference: string | null;
+    details: Record<string, string> | null;
   }[];
 }
 
@@ -175,12 +190,23 @@ export function Sales() {
                     <TD className="text-right tabular-nums">{money(sale.total, cur)}</TD>
                     <TD className="text-right tabular-nums">
                       {cancelled ? "-" : money(sale.due, cur)}
+                      {!cancelled && sale.due > 0 && (
+                        <div
+                          className={
+                            sale.overdue
+                              ? "text-xs text-destructive"
+                              : "text-xs text-muted-foreground"
+                          }
+                        >
+                          by {formatDate(sale.dueDate)}
+                        </div>
+                      )}
                     </TD>
                     <TD>
                       {cancelled ? (
                         <Badge tone="outline">Cancelled</Badge>
                       ) : (
-                        <PaymentBadge status={sale.paymentStatus} />
+                        <PaymentBadge status={sale.paymentStatus} overdue={sale.overdue} />
                       )}
                     </TD>
                     <TD>
@@ -193,7 +219,7 @@ export function Sales() {
                           <RecordPaymentButton
                             due={sale.due}
                             currency={cur}
-                            onSubmit={(amount) => api.post(`/sales/${sale.id}/payment`, { amount })}
+                            onSubmit={(payment) => api.post(`/sales/${sale.id}/payment`, payment)}
                             onDone={reload}
                           />
                         )}
@@ -240,22 +266,39 @@ export function Sales() {
         ) : (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <EditDateButton
-                needs={PERMISSIONS.dataManage}
-                date={detail.date}
-                label="Change sale date"
-                onSave={(d) => api.patch(`/sales/${detail.id}/date`, { date: d })}
-                onDone={() => {
-                  reload();
-                  openDetail(detail.id);
-                }}
-              />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <EditDateButton
+                  needs={PERMISSIONS.dataManage}
+                  date={detail.date}
+                  label="Change sale date"
+                  onSave={(d) => api.patch(`/sales/${detail.id}/date`, { date: d })}
+                  onDone={() => {
+                    reload();
+                    openDetail(detail.id);
+                  }}
+                />
+                {detail.status !== "cancelled" && detail.due > 0 && (
+                  <EditDateButton
+                    needs={PERMISSIONS.dataManage}
+                    date={detail.dueDate}
+                    prefix="Due by"
+                    tone={detail.overdue ? "destructive" : "muted"}
+                    label="Change payment deadline"
+                    hint="The day the balance is expected. Extend it for someone who needs longer."
+                    onSave={(d) => api.patch(`/sales/${detail.id}/due-date`, { date: d })}
+                    onDone={() => {
+                      reload();
+                      openDetail(detail.id);
+                    }}
+                  />
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <SourceBadge source={detail.source} />
                 {detail.status === "cancelled" ? (
                   <Badge tone="outline">Cancelled</Badge>
                 ) : (
-                  <PaymentBadge status={detail.paymentStatus} />
+                  <PaymentBadge status={detail.paymentStatus} overdue={detail.overdue} />
                 )}
               </div>
             </div>
@@ -321,6 +364,25 @@ export function Sales() {
               </div>
             </div>
 
+            {detail.payments.length > 0 && (
+              <div className="border-t border-border pt-4">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Payments
+                </div>
+                <ul className="space-y-1 text-sm">
+                  {detail.payments.map((pay) => (
+                    <li key={pay.id} className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        {formatDate(pay.date)} · {paymentReason(pay.reason)} ·{" "}
+                        {describePayment(pay)}
+                      </span>
+                      <span className="tabular-nums">{money(pay.amount, cur)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {detail.notes && (
               <p className="border-t border-border pt-4 text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">Notes: </span>
@@ -340,7 +402,7 @@ export function Sales() {
                   due={detail.due}
                   currency={cur}
                   variant="primary"
-                  onSubmit={(amount) => api.post(`/sales/${detail.id}/payment`, { amount })}
+                  onSubmit={(payment) => api.post(`/sales/${detail.id}/payment`, payment)}
                   onDone={() => {
                     reload();
                     openDetail(detail.id);
@@ -382,6 +444,8 @@ function NewSaleDialog({
   const [discountType, setDiscountType] = useState<"none" | "amount" | "percentage">("none");
   const [discountValue, setDiscountValue] = useState(0);
   const [amountPaid, setAmountPaid] = useState(0);
+  const [paidHow, setPaidHow] = useState(emptyPayment());
+  const paidProblem = amountPaid > 0 ? paymentProblem(paidHow) : null;
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(toDateInputValue());
 
@@ -393,6 +457,13 @@ function NewSaleDialog({
           partyId: partyId || null,
           items: items.filter((i) => i.description.trim() && i.quantity > 0),
           amountPaid,
+          ...(amountPaid > 0
+            ? {
+                paymentMode: paidHow.mode,
+                paymentReference: paidHow.reference.trim() || null,
+                paymentDetails: paidHow.details,
+              }
+            : {}),
           discountType,
           discountValue,
           notes: notes || null,
@@ -465,6 +536,9 @@ function NewSaleDialog({
             onChange={(e) => setAmountPaid(Number(e.target.value) || 0)}
           />
         </Field>
+        {amountPaid > 0 && (
+          <PaymentModeFields value={paidHow} onChange={setPaidHow} problem={paidProblem} />
+        )}
         <Field label="Notes">
           <Textarea
             value={notes}
@@ -478,7 +552,7 @@ function NewSaleDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
             Cancel
           </Button>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || paidProblem !== null}>
             {pending ? "Creating…" : "Create sale"}
           </Button>
         </div>

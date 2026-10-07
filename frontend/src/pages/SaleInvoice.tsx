@@ -9,7 +9,8 @@ import { Icon } from "@/components/Icon";
 import { PrintButton } from "@/components/PrintButton";
 import { RecordPaymentButton } from "@/components/RecordPaymentButton";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { formatDate, money } from "@/lib/utils";
+import { describePayment } from "@/lib/payments";
+import { formatDate, money, paymentReason } from "@/lib/utils";
 
 interface Detail {
   id: string;
@@ -25,6 +26,8 @@ interface Detail {
   total: number;
   amountPaid: number;
   due: number;
+  dueDate: string;
+  overdue: boolean;
   paymentStatus: string;
   notes: string | null;
   party: { name: string; phone: string | null; gstNumber: string | null } | null;
@@ -34,6 +37,15 @@ interface Detail {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+  }[];
+  payments: {
+    id: string;
+    amount: number;
+    reason: string;
+    date: string;
+    mode: string | null;
+    reference: string | null;
+    details: Record<string, string> | null;
   }[];
   business: { name: string; address: string | null; gstNumber: string | null; currency: string };
 }
@@ -71,7 +83,7 @@ export function SaleInvoice() {
               due={sale.due}
               currency={cur}
               variant="primary"
-              onSubmit={(amount) => api.post(`/sales/${sale.id}/payment`, { amount })}
+              onSubmit={(payment) => api.post(`/sales/${sale.id}/payment`, payment)}
               onDone={reload}
             />
           )}
@@ -106,12 +118,21 @@ export function SaleInvoice() {
             <div className="text-lg font-semibold">Invoice</div>
             <div className="text-sm text-muted-foreground">{sale.invoiceNumber}</div>
             <div className="mt-1 text-sm text-muted-foreground">{formatDate(sale.date)}</div>
+            {!cancelled && sale.due > 0 && (
+              <div
+                className={
+                  sale.overdue ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+                }
+              >
+                Payment due by {formatDate(sale.dueDate)}
+              </div>
+            )}
             <div className="mt-2 flex items-center justify-end gap-2">
               <SourceBadge source={sale.source} />
               {cancelled ? (
                 <Badge tone="outline">Cancelled</Badge>
               ) : (
-                <PaymentBadge status={sale.paymentStatus} />
+                <PaymentBadge status={sale.paymentStatus} overdue={sale.overdue} />
               )}
             </div>
           </div>
@@ -176,6 +197,39 @@ export function SaleInvoice() {
             </div>
           </div>
         </div>
+
+        {/* The ledger prints with the invoice: a customer wants to see the
+            cheque or UTR they paid with on the paper they keep. */}
+        {sale.payments.length > 0 && (
+          <div className="mt-6 border-t border-border pt-4">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Payments
+            </div>
+            <Table>
+              <THead>
+                <TR className="hover:bg-transparent">
+                  <TH>Date</TH>
+                  <TH>Paid by</TH>
+                  <TH className="text-right">Amount</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {sale.payments.map((pay) => (
+                  <TR key={pay.id} className="hover:bg-transparent">
+                    <TD className="whitespace-nowrap">
+                      {formatDate(pay.date)}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {paymentReason(pay.reason)}
+                      </span>
+                    </TD>
+                    <TD>{describePayment(pay)}</TD>
+                    <TD className="text-right tabular-nums">{money(pay.amount, cur)}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </div>
+        )}
 
         {sale.notes && (
           <p className="mt-6 border-t border-border pt-4 text-sm text-muted-foreground">

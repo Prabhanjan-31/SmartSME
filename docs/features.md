@@ -10,9 +10,11 @@ What each page does: sales, purchases, stock, parties, reports and alerts.
 
 ### Dashboard
 Six KPI cards (sales, purchases, expenses, inventory value, receivable, payable),
-each clicking through to its page. Revenue chart, a heuristic **business-health
-score** (inventory / revenue / expenses / cash flow), Recent Sales and Recent
-Purchases side by side, and a low-stock "Needs attention" panel.
+each clicking through to its page. Revenue chart, a **business-health score**
+(cash flow, profitability, revenue and inventory, weighted 30 / 30 / 25 / 15,
+with "Not enough data yet" until there is something to score; how each part is
+worked out is in [Business health](business-health.md)), Recent Sales and
+Recent Purchases side by side, and a low-stock "Needs attention" panel.
 
 ### Smart Input (`/input`)
 Two modes: **natural language** (type `Sold 10 rice bags to Kumar Traders`) and
@@ -22,11 +24,15 @@ discount and date, all editable, before anything is written. Typed text and the
 parsed draft both survive navigating away and back, until the draft is published.
 
 ### Sales & Purchases
-Full list with source badge (Form / AI·Text / AI·OCR) and payment status. Click
-**any row** for a detail modal with line items, totals, and a click-to-edit
-transaction date. Inline "Record payment" and "Cancel"; cancelling reverses
-inventory and the party balance. Sales also have a printable invoice at
-`/sales/:id`.
+Full list with source badge (Form / AI·Text / AI·OCR) and payment status, which
+reads **Overdue** once an unpaid balance is past its deadline. Click **any row**
+for a detail modal with line items, totals, a click-to-edit transaction date, a
+click-to-edit payment deadline, and the list of payments against the document
+with the day each one came. Inline "Record payment" (amount and the date it was
+paid, defaulting to today) and "Cancel"; cancelling reverses inventory and the
+party balance. Sales also have a printable invoice at `/sales/:id`, which
+carries the payment deadline and the payments made against it (date, how it
+was paid, amount), on screen and on paper.
 
 Both support **discounts** (flat amount or percentage) applied to the subtotal
 before tax, with a live preview while you type and a hard block when the discount
@@ -38,11 +44,50 @@ defaults to today, can be set at creation, and corrected afterwards from the
 detail modal, for entries logged late. Lists, charts, analytics and reports all
 key off this date.
 
+### Payment deadlines and the payment ledger
+Every sale and purchase also carries a **due date**: the day its unpaid balance
+is expected. It is the document date plus a number of credit days, which comes
+from the first of these that is set:
+
+1. the one document, extended by hand from its detail modal (for the customer
+   who needs longer this once);
+2. the party, from the "Payment deadline (days)" field on the customer or
+   supplier (for the friend who always gets 60 days);
+3. the business default on the Settings page, 30 days at sign-up.
+
+Correcting a document's date moves its deadline by the same amount.
+
+Every rupee that moves is recorded in a **payment ledger** with the day it
+moved: money taken at the time of the sale or purchase, a payment recorded
+later (dated whenever it actually came, not when it was typed in), or a
+settlement. The ledger is what lets the business-health score tell on-time
+from late; see [Business health](business-health.md#cash-flow-30).
+
+Each payment also records **how** it was paid. "Record payment", and the
+amount-paid section of a new sale or purchase, ask "Paid by" and then only for
+what that mode needs:
+
+| Paid by | Asked for | Optional extras |
+|---|---|---|
+| Cash | nothing | |
+| UPI | transaction ID (UTR) | payer's UPI ID |
+| Card | last 4 digits only | credit / debit, approval code |
+| Cheque | cheque number | bank, date on the cheque |
+| Bank transfer | UTR / reference (NEFT, RTGS, IMPS) | bank |
+| Other | a short description | |
+
+The full card number is never recorded: the server refuses anything longer
+than four digits rather than trimming it. Settlements ("Mark paid" / "Pay
+all"), payments taken through Smart Input, inbound orders, and anything paid
+before this existed have no mode and show as "Mode not recorded" rather than
+being guessed as cash.
+
 ### Parties (`/parties`)
-Customers and suppliers with running balances. Each party row expands to show the
-individual unpaid invoices/bills behind its balance, with **"Pay all"** per party
-and **"Mark all as paid"** for all receivables or all payables. Phone numbers use
-a country-code dropdown (202 countries).
+Customers and suppliers with running balances and their own payment deadline.
+Each party row expands to show the individual unpaid invoices/bills behind its
+balance, each with its due date and marked when it is overdue, with **"Pay
+all"** per party and **"Mark all as paid"** for all receivables or all payables.
+Phone numbers use a country-code dropdown (202 countries).
 
 "Pay all" for one party needs the same permission as taking a payment against a
 single bill, so an employee can use it; "Mark all as paid" across the business
@@ -73,10 +118,11 @@ rule cannot bury the one that matters.
 ---
 
 ## Reports (`/reports`)
-KPI cards, a **revenue chart** with a Y axis, hover tooltips showing exact values,
-and a range selector (last week / month / 3 / 6 months / year) that buckets daily,
-weekly or monthly as appropriate. Top products, top customers, expenses by
-category, cash-flow summary, and **downloadable reports** (see below).
+KPI cards, a **trend chart** with a Y axis, hover tooltips showing exact values,
+a switch between **sales, purchases and expenses**, and a range selector (last
+week / month / 3 / 6 months / year) that buckets daily, weekly or monthly as
+appropriate. Top products, top customers, top suppliers, expenses by category,
+cash-flow summary, and **downloadable reports** (see below).
 
 ### Workflow (`/workflow`) and Event bus (`/events`)
 Toggle built-in rules or add your own `WHEN <event> [condition] THEN <action>`

@@ -18,6 +18,7 @@ interface SettingsData {
     currency: string;
     taxRate: number;
     invoicePrefix: string;
+    creditDays: number;
   };
   ai: { id: string; label: string; model: string; vision: boolean } | null;
 }
@@ -45,7 +46,12 @@ export function Settings() {
     e.preventDefault();
     if (!form) return;
     const ok = await run(
-      () => api.put("/settings", { ...form, taxRate: Number(form.taxRate) }),
+      () =>
+        api.put("/settings", {
+          ...form,
+          taxRate: Number(form.taxRate),
+          creditDays: Number(form.creditDays),
+        }),
       reload,
     );
     if (ok) setSaved(true);
@@ -119,6 +125,19 @@ export function Settings() {
               />
             </Field>
           </div>
+          <Field
+            label="Payment deadline (days)"
+            hint="How long customers get to pay an invoice, and you get to pay a bill, unless a party has its own. Any one document can be extended from its detail view."
+          >
+            <Input
+              type="number"
+              min={0}
+              max={3650}
+              value={form.creditDays}
+              onChange={text("creditDays")}
+              className="sm:max-w-[12rem]"
+            />
+          </Field>
 
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
           <div className="flex items-center justify-end gap-3">

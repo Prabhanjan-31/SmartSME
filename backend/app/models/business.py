@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base, fk, money, pk, timestamp
+from .base import Base, count, fk, money, pk, timestamp
 
 
 class Business(Base):
@@ -29,6 +29,9 @@ class Business(Base):
     invoice_prefix: Mapped[str] = mapped_column(
         Text, nullable=False, default="INV", server_default="INV"
     )
+    #: Default payment deadline, in days from the document date. A party can
+    #: override it, and any one invoice can be extended by hand.
+    credit_days: Mapped[int] = count(30)
     #: Routes inbound orders to this business: mail addressed to
     #: `orders+<token>@...`, or a chat that has sent `/link <token>`.
     #: Rotatable from Settings, which invalidates the old address.

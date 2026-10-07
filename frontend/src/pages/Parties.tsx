@@ -21,6 +21,8 @@ interface OutstandingDoc {
   date: string;
   total: number;
   due: number;
+  dueDate: string;
+  overdue: boolean;
 }
 
 interface PartyRow {
@@ -32,6 +34,7 @@ interface PartyRow {
   gstNumber: string | null;
   address: string | null;
   balance: number;
+  creditDays: number | null;
   outstanding: OutstandingDoc[];
 }
 
@@ -307,6 +310,15 @@ export function Parties() {
                                     <span className="ml-2 text-xs text-muted-foreground">
                                       {formatDate(d.date)}
                                     </span>
+                                    <span
+                                      className={cn(
+                                        "ml-2 text-xs",
+                                        d.overdue ? "text-destructive" : "text-muted-foreground",
+                                      )}
+                                    >
+                                      {d.overdue ? "overdue since" : "due by"}{" "}
+                                      {formatDate(d.dueDate)}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-6 tabular-nums">
                                     <span className="text-muted-foreground">
@@ -372,6 +384,7 @@ function PartyDialog({
     gstNumber: "",
     address: "",
     openingBalance: 0,
+    creditDays: "",
   });
   const [phone, setPhone] = useState(() => splitPhone(null));
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -386,6 +399,7 @@ function PartyDialog({
       gstNumber: party?.gstNumber ?? "",
       address: party?.address ?? "",
       openingBalance: 0,
+      creditDays: party?.creditDays == null ? "" : String(party.creditDays),
     });
     setPhone(splitPhone(party?.phone ?? null));
     setPhoneError(null);
@@ -408,7 +422,11 @@ function PartyDialog({
       setPhoneError("Phone number can only contain digits.");
       return;
     }
-    const body = { ...form, phone: combinedPhone || null };
+    const body = {
+      ...form,
+      phone: combinedPhone || null,
+      creditDays: form.creditDays === "" ? null : Number(form.creditDays),
+    };
     await run(
       () => (party ? api.put(`/parties/${party.id}`, body) : api.post("/parties", body)),
       onSaved,
@@ -484,6 +502,19 @@ function PartyDialog({
             value={form.address}
             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
             placeholder="Optional"
+          />
+        </Field>
+        <Field
+          label="Payment deadline (days)"
+          hint="How long they get to pay each invoice or bill. Leave blank for the business default from Settings."
+        >
+          <Input
+            type="number"
+            min={0}
+            max={3650}
+            value={form.creditDays}
+            onChange={(e) => setForm((f) => ({ ...f, creditDays: e.target.value }))}
+            placeholder="Default"
           />
         </Field>
         {!party && (

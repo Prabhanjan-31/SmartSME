@@ -34,3 +34,5 @@ class SettingsInput(BaseModel):
     currency: str = "INR"
     taxRate: float = 18
     invoicePrefix: str = "INV"
+    #: Default payment deadline for new sales and purchases, in days.
+    creditDays: int = 30

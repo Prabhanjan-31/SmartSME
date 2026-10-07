@@ -14,6 +14,12 @@ from ..models import Business, Party, Product, Purchase, PurchaseItem, StockMove
 from ..schemas import PurchaseInput, PurchaseTotals
 from ..workflow import payment_status_for
 from .line_items import assert_party_owned, clean_line_items, load_owned_products
+from .payments import (
+    clean_payment_mode,
+    credit_days_for,
+    deadline_for,
+    record_document_payment,
+)
 
 
 def calculate_purchase_totals(
@@ -70,11 +76,13 @@ def create_purchase(
 
     amount_paid = round2(max(0.0, min(data.amountPaid or 0, totals.total)))
     payment_status = payment_status_for(amount_paid, totals.total)
+    paid_how = clean_payment_mode(data.paymentMode, data.paymentReference, data.paymentDetails)
 
     count = (
         db.scalar(select(func.count(Purchase.id)).where(Purchase.business_id == business_id)) or 0
     )
     reference_number = f"PO-{count + 1:04d}"
+    date = data.date or datetime.now()
 
     purchase = Purchase(
         business_id=business_id,
@@ -90,10 +98,12 @@ def create_purchase(
         payment_status=payment_status,
         source=data.source or "form",
         notes=data.notes or None,
-        date=data.date or datetime.now(),
+        date=date,
+        due_date=deadline_for(date, credit_days_for(db, biz, party_id)),
     )
     db.add(purchase)
     db.flush()
+    record_document_payment(db, purchase, amount_paid, paid_how)
 
     for i in items:
         db.add(
@@ -162,5 +172,20 @@ def update_purchase_date(
     )
     if pur is None:
         raise ValueError("Purchase not found.")
+    pur.due_date = pur.due_date + (date - pur.date)
     pur.date = date
+    db.commit()
+
+
+def update_purchase_due_date(
+    db: Session, business_id: uuid.UUID, purchase_id: uuid.UUID, due_date: datetime
+) -> None:
+    pur = db.scalar(
+        select(Purchase).where(Purchase.id == purchase_id, Purchase.business_id == business_id)
+    )
+    if pur is None:
+        raise ValueError("Purchase not found.")
+    if due_date < pur.date:
+        raise ValueError("The payment deadline cannot be before the purchase date.")
+    pur.due_date = due_date
     db.commit()

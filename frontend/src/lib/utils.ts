@@ -66,6 +66,17 @@ export function toDateInputValue(d: Date | string | number = new Date()): string
   return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
 }
 
+/** How a ledger row reads in a payments list. */
+export function paymentReason(reason: string): string {
+  const labels: Record<string, string> = {
+    sale: "Paid at sale",
+    purchase: "Paid on purchase",
+    payment: "Payment",
+    settlement: "Settled",
+  };
+  return labels[reason] ?? reason;
+}
+
 export function initials(name: string): string {
   return name
     .split(/\s+/)

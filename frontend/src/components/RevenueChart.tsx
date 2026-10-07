@@ -9,6 +9,15 @@ interface Point {
   full: string;
 }
 
+/** The three streams the chart can show, with the colour each one keeps
+ * everywhere else in the app (sales teal, purchases amber, expenses violet). */
+const METRICS = [
+  { key: "sales", label: "Sales", colorVar: "--chart-1", aria: "Sales trend" },
+  { key: "purchases", label: "Purchases", colorVar: "--chart-2", aria: "Purchases trend" },
+  { key: "expenses", label: "Expenses", colorVar: "--chart-3", aria: "Expenses trend" },
+] as const;
+type MetricKey = (typeof METRICS)[number]["key"];
+
 const RANGES = [
   { label: "Last week", days: 7 },
   { label: "Last month", days: 30 },
@@ -29,27 +38,33 @@ function niceMax(v: number): number {
 export function RevenueChart({
   currency,
   initialDays = 30,
+  showMetric = false,
 }: {
   currency: string;
   initialDays?: number;
+  /** Offer a switch between sales, purchases and expenses. Sales otherwise. */
+  showMetric?: boolean;
 }) {
   const [days, setDays] = useState(initialDays);
+  const [metric, setMetric] = useState<MetricKey>("sales");
   const [data, setData] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [hover, setHover] = useState<number | null>(null);
+  const series = METRICS.find((m) => m.key === metric) ?? METRICS[0];
+  const color = `var(${series.colorVar})`;
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     api
-      .get<{ points: Point[] }>(`/reports/revenue?days=${days}`)
+      .get<{ points: Point[] }>(`/reports/revenue?days=${days}&metric=${metric}`)
       .then((res) => alive && setData(res.points))
       .catch(() => alive && setData([]))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, [days]);
+  }, [days, metric]);
 
   const W = 760;
   const H = 260;
@@ -105,21 +120,41 @@ export function RevenueChart({
             </>
           )}
         </div>
-        <div className="w-44 shrink-0">
-          <Select
-            value={days}
-            onChange={(e) => {
-              setDays(Number(e.target.value));
-              setHover(null);
-            }}
-            aria-label="Revenue range"
-          >
-            {RANGES.map((r) => (
-              <option key={r.days} value={r.days}>
-                {r.label}
-              </option>
-            ))}
-          </Select>
+        <div className="flex shrink-0 gap-2">
+          {showMetric && (
+            <div className="w-36">
+              <Select
+                value={metric}
+                onChange={(e) => {
+                  setMetric(e.target.value as MetricKey);
+                  setHover(null);
+                }}
+                aria-label="What to chart"
+              >
+                {METRICS.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          <div className="w-44">
+            <Select
+              value={days}
+              onChange={(e) => {
+                setDays(Number(e.target.value));
+                setHover(null);
+              }}
+              aria-label="Chart range"
+            >
+              {RANGES.map((r) => (
+                <option key={r.days} value={r.days}>
+                  {r.label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -128,12 +163,12 @@ export function RevenueChart({
           viewBox={`0 0 ${W} ${H}`}
           className="block h-auto w-full"
           role="img"
-          aria-label="Revenue trend"
+          aria-label={series.aria}
         >
           <defs>
-            <linearGradient id="rev-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
+            <linearGradient id={`fill-${metric}`} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
           </defs>
 
@@ -163,11 +198,11 @@ export function RevenueChart({
             );
           })}
 
-          <path d={fillPath} fill="url(#rev-fill)" />
+          <path d={fillPath} fill={`url(#fill-${metric})`} />
           <path
             d={linePath}
             fill="none"
-            stroke="var(--chart-1)"
+            stroke={color}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -194,7 +229,7 @@ export function RevenueChart({
               x2={x(hover)}
               y1={padT}
               y2={padT + plotH}
-              stroke="var(--chart-1)"
+              stroke={color}
               strokeOpacity="0.4"
               strokeWidth="1.5"
             />
@@ -207,7 +242,7 @@ export function RevenueChart({
               cy={y(d.value)}
               r={hover === i ? 5 : 3}
               fill="var(--card)"
-              stroke="var(--chart-1)"
+              stroke={color}
               strokeWidth="2"
             />
           ))}

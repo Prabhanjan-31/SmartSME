@@ -52,6 +52,12 @@ class DocumentInput(BaseModel):
     partyId: str | None = None
     items: list[LineInput] = []
     amountPaid: float = 0
+    #: How any money paid at the time was taken: a key from
+    #: `domain.payments.PAYMENT_MODES`, with its identifier and extras. Left
+    #: out by Smart Input and inbound orders, which do not know.
+    paymentMode: str | None = None
+    paymentReference: str | None = None
+    paymentDetails: dict[str, str] = {}
     discountType: str = "none"  # none | amount | percentage
     discountValue: float = 0
     notes: str | None = None
@@ -74,6 +80,13 @@ class PaymentInput(BaseModel):
     """A payment against an outstanding invoice or bill."""
 
     amount: float
+    #: When the money moved. Omit for today; back-date a payment logged late.
+    date: BusinessDate = None
+    #: How it was paid: a key from `domain.payments.PAYMENT_MODES`, the
+    #: identifier that mode needs, and any extras (bank, cheque date, ...).
+    mode: str = "cash"
+    reference: str | None = None
+    details: dict[str, str] = {}
 
 
 class DateInput(BaseModel):

@@ -10,13 +10,14 @@ What is covered, how to run it, and how to add to it.
 
 ```bash
 cd backend
-.venv/Scripts/python -m pytest -q              # 381 tests
+.venv/Scripts/python -m pytest -q              # 484 tests
 ```
 
 ```
 ================================ test summary =================================
   AI (mocked)             24 passed
   Alert log                9 passed
+  Business health         55 passed
   Dispatch                 8 passed
   Domain units            42 passed
   Endpoint smoke          36 passed
@@ -25,12 +26,14 @@ cd backend
   Languages               46 passed
   Order slips (OCR)       23 passed
   Paging                  25 passed
+  Payment modes           22 passed
+  Payments & deadlines    26 passed
   Review regressions       8 passed
   Review regressions II   22 passed
   Roles & throttle        27 passed
   Translation             65 passed
 -------------------------------------------------------------------------------
-  381 passed in 32.40s
+  484 passed in 30.12s
 ```
 
 Hooks in `tests/conftest.py` replace pytest's default report order. Pytest prints
@@ -39,7 +42,39 @@ want has scrolled off; here a per-layer summary comes last, with the failures,
 full traceback and assertion diff, printed underneath it. A skip prints its
 reason, which is almost always "Postgres is unreachable".
 
-Fourteen layers, in one run.
+Seventeen layers, in one run.
+
+**`tests/test_health.py`: 55 tests over the business-health score.** The scoring
+functions are pure, so every threshold in
+[Business health](business-health.md) is pinned without a database: the bands
+for each part, the "no data" cases, the re-weighting when a part is missing, and
+the cap that stops one bad part hiding behind three good ones. Four more go
+through the API: an empty business has no score, products alone are not enough
+for one, credit to a named customer is counted once, and one business built to
+known numbers (back-dated sales, purchases and expenses, payments dated on
+time and late, a cancelled sale, a dead product) has every input checked to the
+rupee and every score checked against arithmetic written out in the test. All
+four fail against the score this replaced.
+
+**`tests/test_payments.py`: 26 tests over payment deadlines and the ledger.**
+Where a deadline comes from (the business default, a party's own terms, a hand
+edit on one document), that it moves with a corrected date and cannot be set
+before the document, that money taken at the sale is dated on the sale and a
+later payment on the day it came, that a payment cannot predate its document,
+that settling a party or everything writes one ledger row per document, that
+an unpaid balance reads overdue once its day has passed, that only a manager can
+change a deadline, plus the Reports additions: top suppliers, and the trend
+chart's switch between sales, purchases and expenses.
+
+**`tests/test_payment_modes.py`: 22 tests over how a payment was made.** The
+rules first, with no database: cash keeps nothing, every other mode needs its
+identifier, a card may carry only its last four digits (a full number is
+refused, never trimmed), card type must be credit or debit, a cheque date must
+be a date, unknown extras are dropped, unknown modes and overlong references
+are refused. Then through the API: each mode round-trips with its extras,
+money taken at the sale carries the mode from the form, a bad reference refuses
+the whole sale rather than leaving an invoice behind, and a sale published
+without a mode, or a settlement, says "not recorded" rather than "cash".
 
 **`tests/test_domain.py`: 42 unit tests, no database.** The maths and parsing the
 money and Smart Input features depend on: discount-before-tax totals for sales and
@@ -170,6 +205,11 @@ straight at the endpoint with `TestClient`, which skips the frontend's
 request-building entirely. **A contract only one side is tested against is not
 a tested contract** - and that is the argument for these tests existing at all,
 rather than any coverage number.
+
+`src/lib/health.test.ts` covers the other half of a contract in the same spirit.
+The API sends `null` for a business-health part with no data behind it, and the
+dashboard must show that as "No data yet" with an empty bar, never as a red
+zero. The backend tests pin the `null`; this pins what the browser does with it.
 
 ## What the test suite does not measure
 

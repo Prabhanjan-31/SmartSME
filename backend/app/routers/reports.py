@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select
 
 from .. import serializers as ser
-from ..analytics import get_revenue_series, load_overview
+from ..analytics import SERIES_METRICS, get_revenue_series, load_overview
 from ..core.deps import CurrentUser, Db, require
 from ..core.roles import P
 from ..models import Party, Purchase, Sale
@@ -56,11 +56,15 @@ def reports_overview(ctx: CurrentUser, db: Db) -> dict:
 
 
 @router.get("/reports/revenue", dependencies=[Depends(require(P.DATA_READ))])
-def revenue(ctx: CurrentUser, db: Db, days: int = Query(30)) -> dict:
+def revenue(ctx: CurrentUser, db: Db, days: int = Query(30), metric: str = Query("sales")) -> dict:
+    """One money stream over time. `metric` is sales (the default), purchases
+    or expenses; anything else falls back to sales, like an unknown `days`."""
     d = days if days in ALLOWED_DAYS else 30
-    series = get_revenue_series(db, ctx.business.id, d)
+    m = metric if metric in SERIES_METRICS else "sales"
+    series = get_revenue_series(db, ctx.business.id, d, m)
     return {
         "days": d,
+        "metric": m,
         "points": [{"label": p.label, "value": p.value, "full": p.full} for p in series],
         "currency": ctx.business.currency,
     }

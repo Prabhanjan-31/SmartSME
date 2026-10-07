@@ -107,7 +107,7 @@ cd frontend && npm run dev
 Open <http://localhost:5173> and sign in as `demo@smartsme.app` / `demo1234`. The
 first boot seeds that demo business automatically.
 
-To confirm the whole stack is wired up, run the tests, and 381 should pass:
+To confirm the whole stack is wired up, run the tests, and 484 should pass:
 
 ```bash
 cd backend

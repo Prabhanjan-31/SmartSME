@@ -207,7 +207,7 @@ Inbox the same way. Full walkthrough:
 window, and set a password. That employee can record sales but will not see
 Workflow or Team, and cannot delete anything.
 
-**7. The tests.** `cd backend; .venv\Scripts\python -m pytest -q` - 381 of
+**7. The tests.** `cd backend; .venv\Scripts\python -m pytest -q` - 484 of
 them, about fifteen seconds. Accuracy is measured separately and on purpose:
 [backend/eval](backend/eval/README.md).
 
@@ -229,6 +229,7 @@ This page covers getting SmartSME running. Everything else lives in
 | **[Inbound orders: email and Telegram](docs/inbound-orders.md)** | Letting customers send orders in, with step-by-step walkthroughs for both channels. |
 | **[Smart Input: reading notes and photographs](docs/smart-input.md)** | The NLP engine, three scripts, catalogue matching, and the two OCR engines. |
 | **[Feature reference](docs/features.md)** | What each page does: sales, purchases, stock, parties, reports and alerts. |
+| **[Business health score](docs/business-health.md)** | How the dashboard's health score is calculated, why each weight and threshold, and what it cannot see. |
 | **[Authentication, roles and permissions](docs/auth.md)** | Sessions, the four roles, how RBAC is enforced, and sign-in throttling. |
 | **[Performance and load testing](docs/performance.md)** | Indexes, pagination, pool sizing, and driving the whole app with Locust. |
 | **[The test suite](docs/testing.md)** | What is covered, how to run it, and how to add to it. |

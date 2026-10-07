@@ -8,6 +8,7 @@ import { PaymentBadge } from "@/components/Status";
 import { Icon } from "@/components/Icon";
 import { RevenueChart } from "@/components/RevenueChart";
 import { compactMoney, formatDate, money } from "@/lib/utils";
+import { type Health, type HealthScore, healthColor, healthLabel, healthTone } from "@/lib/health";
 
 interface Row {
   id: string;
@@ -15,6 +16,7 @@ interface Row {
   partyName: string | null;
   total: number;
   paymentStatus: string;
+  overdue: boolean;
   invoiceNumber?: string;
   referenceNumber?: string;
 }
@@ -29,43 +31,32 @@ interface DashboardData {
     inventoryValue: number;
     grossProfit: number;
   };
-  health: {
-    overall: number;
-    inventory: number;
-    revenue: number;
-    expense: number;
-    cashFlow: number;
-  };
+  health: Health;
   lowStock: { id: string; name: string; stock: number; unit: string; lowStockThreshold: number }[];
   recentSales: Row[];
   recentPurchases: Row[];
   business: { name: string; currency: string };
 }
 
-function healthTone(score: number): "success" | "warning" | "destructive" {
-  if (score >= 70) return "success";
-  if (score >= 40) return "warning";
-  return "destructive";
-}
-function healthLabel(score: number): string {
-  if (score >= 70) return "Healthy";
-  if (score >= 40) return "Fair";
-  return "At risk";
-}
-
-function HealthRow({ label, score }: { label: string; score: number }) {
-  const color = score >= 70 ? "--success" : score >= 40 ? "--warning" : "--destructive";
+function HealthRow({ label, score }: { label: string; score: HealthScore }) {
+  const color = healthColor(score);
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-sm">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-medium tabular-nums">{score}</span>
+        {score === null ? (
+          <span className="text-xs text-muted-foreground">No data yet</span>
+        ) : (
+          <span className="font-medium tabular-nums">{score}</span>
+        )}
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${score}%`, backgroundColor: `var(${color})` }}
-        />
+        {score !== null && color && (
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${score}%`, backgroundColor: `var(${color})` }}
+          />
+        )}
       </div>
     </div>
   );
@@ -154,18 +145,27 @@ export function Dashboard() {
             <CardDescription>Overall score</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4 flex items-end gap-2">
-              <span className="text-4xl font-semibold tracking-tight">{data.health.overall}</span>
-              <span className="mb-1 text-sm text-muted-foreground">/ 100</span>
-              <Badge className="mb-1 ml-auto" tone={healthTone(data.health.overall)}>
-                {healthLabel(data.health.overall)}
-              </Badge>
-            </div>
+            {data.health.overall === null ? (
+              <div className="mb-4">
+                <div className="text-lg font-semibold">Not enough data yet</div>
+                <p className="text-sm text-muted-foreground">
+                  The score appears once a few weeks of sales, purchases and expenses are recorded.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4 flex items-end gap-2">
+                <span className="text-4xl font-semibold tracking-tight">{data.health.overall}</span>
+                <span className="mb-1 text-sm text-muted-foreground">/ 100</span>
+                <Badge className="mb-1 ml-auto" tone={healthTone(data.health.overall)}>
+                  {healthLabel(data.health.overall)}
+                </Badge>
+              </div>
+            )}
             <div className="space-y-2.5">
-              <HealthRow label="Inventory" score={data.health.inventory} />
-              <HealthRow label="Revenue" score={data.health.revenue} />
-              <HealthRow label="Expenses" score={data.health.expense} />
               <HealthRow label="Cash flow" score={data.health.cashFlow} />
+              <HealthRow label="Profitability" score={data.health.profitability} />
+              <HealthRow label="Revenue" score={data.health.revenue} />
+              <HealthRow label="Inventory" score={data.health.inventory} />
             </div>
           </CardContent>
         </Card>
@@ -206,7 +206,7 @@ export function Dashboard() {
                   </div>
                   <div className="text-right">
                     <div className="font-medium tabular-nums">{money(s.total, cur)}</div>
-                    <PaymentBadge status={s.paymentStatus} />
+                    <PaymentBadge status={s.paymentStatus} overdue={s.overdue} />
                   </div>
                 </li>
               ))}
@@ -245,7 +245,7 @@ export function Dashboard() {
                   </div>
                   <div className="text-right">
                     <div className="font-medium tabular-nums">{money(p.total, cur)}</div>
-                    <PaymentBadge status={p.paymentStatus} />
+                    <PaymentBadge status={p.paymentStatus} overdue={p.overdue} />
                   </div>
                 </li>
               ))}

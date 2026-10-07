@@ -30,6 +30,8 @@ class PartyInput(BaseModel):
     gstNumber: str | None = None
     address: str | None = None
     openingBalance: float = 0
+    #: Days to pay, applied to each new document. Null means the business default.
+    creditDays: int | None = None
 
 
 class ExpenseInput(BaseModel):

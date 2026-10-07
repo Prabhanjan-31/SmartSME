@@ -10,10 +10,10 @@ from sqlalchemy import func, select
 from .. import serializers as ser
 from ..core.deps import CurrentUser, Db, require
 from ..core.roles import P
-from ..core.utils import parse_date_input, round2
+from ..core.utils import end_of_day, parse_date_input, round2
 from ..domain import purchases as purchases_domain
 from ..domain.payments import record_payment
-from ..models import Party, Product, Purchase, PurchaseItem
+from ..models import Party, Payment, Product, Purchase, PurchaseItem
 from ..pagination import Paging, page_info, slice_of, total_for
 from ..schemas import DateInput, PaymentInput, PurchaseInput
 from ..worker import drain_queue
@@ -87,13 +87,25 @@ def get_purchase(purchase_id: uuid.UUID, ctx: CurrentUser, db: Db) -> dict:
         raise HTTPException(status_code=404, detail="Purchase not found.")
     party = db.scalar(select(Party).where(Party.id == pur.party_id)) if pur.party_id else None
     items = list(db.scalars(select(PurchaseItem).where(PurchaseItem.purchase_id == pur.id)))
-    return ser.purchase_detail(pur, party, items)
+    payments = list(
+        db.scalars(select(Payment).where(Payment.purchase_id == pur.id).order_by(Payment.date))
+    )
+    return ser.purchase_detail(pur, party, items, payments)
 
 
 @router.post("/{purchase_id}/payment", dependencies=[Depends(require(P.TXN_WRITE))])
 def pay_purchase(purchase_id: uuid.UUID, body: PaymentInput, ctx: CurrentUser, db: Db) -> dict:
     try:
-        record_payment(db, ctx.business.id, purchase_id=purchase_id, amount=body.amount)
+        record_payment(
+            db,
+            ctx.business.id,
+            purchase_id=purchase_id,
+            amount=body.amount,
+            date=body.date,
+            mode=body.mode,
+            reference=body.reference,
+            details=body.details,
+        )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     return {"ok": True}
@@ -114,4 +126,21 @@ def set_purchase_date(purchase_id: uuid.UUID, body: DateInput, ctx: CurrentUser,
         purchases_domain.update_purchase_date(db, ctx.business.id, purchase_id, date)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
+    return {"ok": True}
+
+
+@router.patch("/{purchase_id}/due-date", dependencies=[Depends(require(P.DATA_MANAGE))])
+def set_purchase_due_date(
+    purchase_id: uuid.UUID, body: DateInput, ctx: CurrentUser, db: Db
+) -> dict:
+    date = parse_date_input(body.date)
+    if date is None:
+        raise HTTPException(status_code=400, detail="Pick a valid date.")
+    try:
+        purchases_domain.update_purchase_due_date(
+            db, ctx.business.id, purchase_id, end_of_day(date)
+        )
+    except ValueError as err:
+        status = 404 if "not found" in str(err) else 400
+        raise HTTPException(status_code=status, detail=str(err)) from err
     return {"ok": True}

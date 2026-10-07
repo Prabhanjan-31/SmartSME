@@ -1,11 +1,17 @@
 import { Badge } from "@/components/ui/badge";
 
-export function PaymentBadge({ status }: { status: string }) {
+/**
+ * Paid / Partial / Unpaid, or "Overdue" once an unpaid amount is past its
+ * deadline. Overdue wins because it is the one that needs doing something
+ * about; the amount still owed is beside it in the table.
+ */
+export function PaymentBadge({ status, overdue = false }: { status: string; overdue?: boolean }) {
   const map: Record<string, { tone: "success" | "warning" | "destructive"; label: string }> = {
     paid: { tone: "success", label: "Paid" },
     partial: { tone: "warning", label: "Partial" },
     unpaid: { tone: "destructive", label: "Unpaid" },
   };
+  if (overdue && status !== "paid") return <Badge tone="destructive">Overdue</Badge>;
   const m = map[status] ?? { tone: "warning" as const, label: status };
   return <Badge tone={m.tone}>{m.label}</Badge>;
 }

@@ -163,6 +163,7 @@ SmartSME/
 │       ├── workflow.py         core effects + WHEN/THEN rule engine
 │       ├── worker.py           claim / retry / dead-letter loop
 │       ├── analytics.py        dashboard + revenue series
+│       ├── health.py           business-health scores (pure) + the SQL behind them
 │       ├── reports.py          report builder, PDF (reportlab) and CSV
 │       ├── smart_input.py      grounding: party/product matching, drafts
 │       └── seed.py             demo tenant
@@ -172,7 +173,7 @@ SmartSME/
     └── src/
         ├── App.tsx             routes + session guard
         ├── index.css           design tokens (light/dark) + print rules
-        ├── lib/                api.ts (client + hooks) · utils.ts · countries.ts
+        ├── lib/                api.ts (client + hooks) · utils.ts · countries.ts · health.ts
         ├── components/         AppShell, AuthLayout, RevenueChart,
         │                       LineItemsEditor, ui/*
         └── pages/              Dashboard, SmartInput, Sales, SaleInvoice,
@@ -196,20 +197,23 @@ SQLAlchemy models in `backend/app/models/`, migrations in `backend/alembic/`.
 
 | Table | Purpose |
 |---|---|
-| `businesses` | Tenant root: name, GSTIN/PAN, address, currency, `tax_rate`, `invoice_prefix` |
+| `businesses` | Tenant root: name, GSTIN/PAN, address, currency, `tax_rate`, `invoice_prefix`, default `credit_days` |
 | `users` | Email + PBKDF2 password hash, role, belongs to a business |
-| `parties` | Customers and suppliers, with a running `balance` |
+| `parties` | Customers and suppliers, with a running `balance` and optional `credit_days` |
 | `products` | Stock, unit, HSN/SKU, purchase/selling price, low-stock threshold |
 | `stock_movements` | Append-only inventory ledger (`delta`, reason, ref) |
-| `sales` / `sale_items` | Invoices: subtotal, discount (type/value/amount), tax, total, paid, status, `date` |
+| `sales` / `sale_items` | Invoices: subtotal, discount (type/value/amount), tax, total, paid, status, `date`, `due_date` |
 | `purchases` / `purchase_items` | Supplier bills, same shape as sales |
+| `payments` | Append-only payment ledger: amount, reason (`sale`, `purchase`, `payment`, `settlement`), `date`, how (`mode`, `reference`, JSONB `details`), against one sale or purchase |
 | `expenses` | Category, description, amount, `date`, workflow `flagged` marker |
 | `events` | The outbox: type, JSONB payload, status, retry count, error |
 | `workflow_rules` / `workflow_executions` | Rule definitions and their audit trail |
 | `notifications` | Alerts surfaced in the bell menu |
 
 Positive `parties.balance` means *they owe us* (customer) or *we owe them*
-(supplier). Money is `double precision` and every amount passes through `round2`.
+(supplier). `sales.amount_paid` says how much has been paid; the `payments`
+ledger says when, one row per movement of money. Money is `double precision`
+and every amount passes through `round2`.
 Timestamps are naive and treated as local time, so day/month boundaries in reports
 match the user's calendar.
 

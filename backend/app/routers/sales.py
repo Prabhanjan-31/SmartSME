@@ -10,10 +10,10 @@ from sqlalchemy import func, select
 from .. import serializers as ser
 from ..core.deps import CurrentUser, Db, require
 from ..core.roles import P
-from ..core.utils import parse_date_input, round2
+from ..core.utils import end_of_day, parse_date_input, round2
 from ..domain import sales as sales_domain
 from ..domain.payments import record_payment
-from ..models import Party, Product, Sale, SaleItem
+from ..models import Party, Payment, Product, Sale, SaleItem
 from ..pagination import Paging, page_info, slice_of, total_for
 from ..schemas import DateInput, PaymentInput, SaleInput
 from ..worker import drain_queue
@@ -86,7 +86,10 @@ def get_sale(sale_id: uuid.UUID, ctx: CurrentUser, db: Db) -> dict:
         raise HTTPException(status_code=404, detail="Sale not found.")
     party = db.scalar(select(Party).where(Party.id == sale.party_id)) if sale.party_id else None
     items = list(db.scalars(select(SaleItem).where(SaleItem.sale_id == sale.id)))
-    detail = ser.sale_detail(sale, party, items)
+    payments = list(
+        db.scalars(select(Payment).where(Payment.sale_id == sale.id).order_by(Payment.date))
+    )
+    detail = ser.sale_detail(sale, party, items, payments)
     detail["business"] = {
         "name": ctx.business.name,
         "address": ctx.business.address,
@@ -99,7 +102,16 @@ def get_sale(sale_id: uuid.UUID, ctx: CurrentUser, db: Db) -> dict:
 @router.post("/{sale_id}/payment", dependencies=[Depends(require(P.TXN_WRITE))])
 def pay_sale(sale_id: uuid.UUID, body: PaymentInput, ctx: CurrentUser, db: Db) -> dict:
     try:
-        record_payment(db, ctx.business.id, sale_id=sale_id, amount=body.amount)
+        record_payment(
+            db,
+            ctx.business.id,
+            sale_id=sale_id,
+            amount=body.amount,
+            date=body.date,
+            mode=body.mode,
+            reference=body.reference,
+            details=body.details,
+        )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
     return {"ok": True}
@@ -120,4 +132,18 @@ def set_sale_date(sale_id: uuid.UUID, body: DateInput, ctx: CurrentUser, db: Db)
         sales_domain.update_sale_date(db, ctx.business.id, sale_id, date)
     except ValueError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
+    return {"ok": True}
+
+
+@router.patch("/{sale_id}/due-date", dependencies=[Depends(require(P.DATA_MANAGE))])
+def set_sale_due_date(sale_id: uuid.UUID, body: DateInput, ctx: CurrentUser, db: Db) -> dict:
+    """Extend one invoice's payment deadline, for the customer who needs longer."""
+    date = parse_date_input(body.date)
+    if date is None:
+        raise HTTPException(status_code=400, detail="Pick a valid date.")
+    try:
+        sales_domain.update_sale_due_date(db, ctx.business.id, sale_id, end_of_day(date))
+    except ValueError as err:
+        status = 404 if "not found" in str(err) else 400
+        raise HTTPException(status_code=status, detail=str(err)) from err
     return {"ok": True}

@@ -10,13 +10,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .core.utils import money, round2, start_of_day
+from .health import gather as gather_health
+from .health import outstanding_balances
+from .health import score as score_health
 from .models import Expense, Party, Product, Purchase, Sale, SaleItem
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-
-def _clamp(n: float, lo: int = 0, hi: int = 100) -> int:
-    return max(lo, min(hi, round(n)))
 
 
 def _fmt(n: float) -> str:
@@ -35,9 +34,19 @@ class RevenuePoint:
     full: str
 
 
-def get_revenue_series(db: Session, business_id: uuid.UUID, days: int) -> list[RevenuePoint]:
-    """Revenue over the last `days`, bucketed to keep the point count readable:
-    daily up to ~a month, weekly up to ~3 months, then whole calendar months."""
+#: The three money streams the trend chart can show. Each is a model and the
+#: amount column to sum; sales and purchases skip cancelled documents.
+SERIES_METRICS = {"sales": Sale, "purchases": Purchase, "expenses": Expense}
+
+
+def get_revenue_series(
+    db: Session, business_id: uuid.UUID, days: int, metric: str = "sales"
+) -> list[RevenuePoint]:
+    """Sales, purchases or expenses over the last `days`, bucketed to keep the
+    point count readable: daily up to ~a month, weekly up to ~3 months, then
+    whole calendar months."""
+    model = SERIES_METRICS.get(metric, Sale)
+    amount = Expense.amount if model is Expense else model.total
     now = datetime.now()
     today = start_of_day(now)
     end_exclusive = today + timedelta(days=1)
@@ -84,14 +93,14 @@ def get_revenue_series(db: Session, business_id: uuid.UUID, days: int) -> list[R
     # expensive thing the dashboard did.
     window_start = min(b[0] for b in buckets)
     window_end = max(b[1] for b in buckets)
-    rows = db.execute(
-        select(Sale.date, Sale.total).where(
-            Sale.business_id == business_id,
-            Sale.status != "cancelled",
-            Sale.date >= window_start,
-            Sale.date < window_end,
-        )
-    ).all()
+    conditions = [
+        model.business_id == business_id,
+        model.date >= window_start,
+        model.date < window_end,
+    ]
+    if model is not Expense:
+        conditions.append(model.status != "cancelled")
+    rows = db.execute(select(model.date, amount).where(*conditions)).all()
 
     values = [0.0] * len(buckets)
     for sale_date, total in rows:
@@ -120,13 +129,12 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         select(
             func.coalesce(func.sum(Sale.total), 0.0),
             func.count(Sale.id),
-            # Outstanding never goes negative, the same clamp the Python version used.
-            func.coalesce(func.sum(func.greatest(Sale.total - Sale.amount_paid, 0.0)), 0.0),
+            func.coalesce(func.sum(Sale.tax), 0.0),
         ).where(*live_sale)
     ).one()
     total_sales = round2(sale_totals[0])
     sales_count = sale_totals[1]
-    receivable_from_sales = round2(sale_totals[2])
+    tax_collected = sale_totals[2]
 
     total_purchases = round2(
         db.scalar(select(func.coalesce(func.sum(Purchase.total), 0.0)).where(*live_purchase)) or 0
@@ -140,29 +148,19 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         or 0
     )
 
-    balances = db.execute(
-        select(
-            func.coalesce(
-                func.sum(Party.balance).filter(Party.type == "customer", Party.balance > 0), 0.0
-            ),
-            func.coalesce(
-                func.sum(Party.balance).filter(Party.type == "supplier", Party.balance > 0), 0.0
-            ),
-        ).where(Party.business_id == business_id)
-    ).one()
-    receivable = round2(receivable_from_sales + round2(balances[0]))
-    payable = round2(balances[1])
+    # This used to add every sale's unpaid amount to the customer balances, but
+    # a balance already includes its own invoices, so credit sold to a named
+    # customer was counted twice.
+    receivable, payable = (round2(n) for n in outstanding_balances(db, business_id))
 
-    stock = db.execute(
-        select(
-            func.coalesce(func.sum(Product.stock * Product.purchase_price), 0.0),
-            func.count(Product.id),
-            func.count(Product.id).filter(Product.stock > Product.low_stock_threshold),
-        ).where(Product.business_id == business_id)
-    ).one()
-    inventory_value = round2(stock[0])
-    product_count = stock[1]
-    healthy_stock = stock[2]
+    inventory_value = round2(
+        db.scalar(
+            select(func.coalesce(func.sum(Product.stock * Product.purchase_price), 0.0)).where(
+                Product.business_id == business_id
+            )
+        )
+        or 0
+    )
 
     # Cost of goods sold, joined to the product that was sold rather than
     # rebuilt from a dictionary in Python.
@@ -176,7 +174,8 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         )
         or 0
     )
-    gross_profit = round2(total_sales - cogs)
+    # Net of tax: GST collected on a sale is owed to the government, not earned.
+    gross_profit = round2(total_sales - tax_collected - cogs)
 
     revenue_series = get_revenue_series(db, business_id, days)
 
@@ -208,6 +207,19 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         ).all()
     ]
 
+    top_suppliers = [
+        {"label": name, "value": round2(value), "display": _fmt(value)}
+        for name, value in db.execute(
+            select(Party.name, func.sum(Purchase.total))
+            .select_from(Purchase)
+            .join(Party, Purchase.party_id == Party.id)
+            .where(*live_purchase)
+            .group_by(Party.id, Party.name)
+            .order_by(func.sum(Purchase.total).desc())
+            .limit(5)
+        ).all()
+    ]
+
     expense_by_category = [
         {"label": category, "value": round2(value), "display": _fmt(value)}
         for category, value in db.execute(
@@ -230,40 +242,7 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         )
     )
 
-    # ---- Business health (heuristic 0-100) ----
-    inventory = 100 if not product_count else _clamp(healthy_stock / product_count * 100)
-
-    now = datetime.now()
-    cutoff = now - timedelta(days=days)
-    prior_cutoff = now - timedelta(days=2 * days)
-    windows = db.execute(
-        select(
-            func.coalesce(func.sum(Sale.total).filter(Sale.date >= cutoff), 0.0),
-            func.coalesce(
-                func.sum(Sale.total).filter(Sale.date >= prior_cutoff, Sale.date < cutoff), 0.0
-            ),
-        ).where(*live_sale)
-    ).one()
-    recent_rev = windows[0]
-    prior_rev = windows[1]
-    if prior_rev > 0:  # noqa: SIM108 - a nested ternary reads worse here
-        growth = (recent_rev - prior_rev) / prior_rev
-    else:
-        growth = 1 if recent_rev > 0 else 0
-    revenue_score = _clamp(60 + growth * 40, 10, 100)
-
-    if total_sales > 0:
-        expense_ratio = total_expenses / total_sales
-    else:
-        expense_ratio = 1 if total_expenses > 0 else 0
-    expense_score = _clamp(100 - expense_ratio * 100, 10, 100)
-
-    if payable + receivable == 0:
-        cash_flow = 80
-    else:
-        cash_flow = _clamp(40 + (receivable / (payable + receivable)) * 55, 10, 100)
-
-    overall = _clamp((inventory + revenue_score + expense_score + cash_flow) / 4)
+    health = score_health(gather_health(db, business_id))
 
     return {
         "totals": {
@@ -281,6 +260,7 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
         ],
         "topProducts": top_products,
         "topCustomers": top_customers,
+        "topSuppliers": top_suppliers,
         "expenseByCategory": expense_by_category,
         "lowStock": [
             {
@@ -292,11 +272,5 @@ def load_overview(db: Session, business_id: uuid.UUID, days: int = 14) -> dict:
             }
             for p in low_stock
         ],
-        "health": {
-            "overall": overall,
-            "inventory": inventory,
-            "revenue": revenue_score,
-            "expense": expense_score,
-            "cashFlow": cash_flow,
-        },
+        "health": health,
     }

@@ -12,6 +12,7 @@ from .expense import Expense
 from .inbound import ChannelLink, InboundMessage
 from .notification import Notification
 from .party import Party
+from .payment import Payment
 from .product import Product, StockMovement
 from .purchase import Purchase, PurchaseItem
 from .sale import Sale, SaleItem
@@ -28,6 +29,7 @@ __all__ = [
     "LoginAttempt",
     "Notification",
     "Party",
+    "Payment",
     "Product",
     "Purchase",
     "PurchaseItem",

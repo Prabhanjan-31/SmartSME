@@ -14,6 +14,12 @@ from ..models import Business, Party, Product, Sale, SaleItem, StockMovement
 from ..schemas import SaleInput, SaleTotals
 from ..workflow import payment_status_for
 from .line_items import assert_party_owned, clean_line_items, load_owned_products
+from .payments import (
+    clean_payment_mode,
+    credit_days_for,
+    deadline_for,
+    record_document_payment,
+)
 
 DiscountType = str  # "none" | "amount" | "percentage"
 
@@ -99,9 +105,13 @@ def create_sale(
     raw_paid = data.amountPaid or 0
     amount_paid = round2(max(0.0, min(raw_paid, totals.total)))
     payment_status = payment_status_for(amount_paid, totals.total)
+    # Checked before the invoice exists, so a bad reference refuses the whole
+    # sale rather than leaving one behind with no payment row.
+    paid_how = clean_payment_mode(data.paymentMode, data.paymentReference, data.paymentDetails)
 
     count = db.scalar(select(func.count(Sale.id)).where(Sale.business_id == business_id)) or 0
     invoice_number = f"{biz.invoice_prefix}-{count + 1:04d}"
+    date = data.date or datetime.now()
 
     sale = Sale(
         business_id=business_id,
@@ -117,10 +127,12 @@ def create_sale(
         payment_status=payment_status,
         source=data.source or "form",
         notes=data.notes or None,
-        date=data.date or datetime.now(),
+        date=date,
+        due_date=deadline_for(date, credit_days_for(db, biz, party_id)),
     )
     db.add(sale)
     db.flush()  # assign the sale id
+    record_document_payment(db, sale, amount_paid, paid_how)
 
     for i in items:
         db.add(
@@ -183,9 +195,27 @@ def cancel_sale(db: Session, business_id: uuid.UUID, sale_id: uuid.UUID) -> None
 def update_sale_date(
     db: Session, business_id: uuid.UUID, sale_id: uuid.UUID, date: datetime
 ) -> None:
-    """Back-date (or correct) the business date of a sale."""
+    """Back-date (or correct) the business date of a sale.
+
+    The payment deadline moves with it, so an invoice that was due 30 days
+    after the wrong date is due 30 days after the right one.
+    """
     sale = db.scalar(select(Sale).where(Sale.id == sale_id, Sale.business_id == business_id))
     if sale is None:
         raise ValueError("Sale not found.")
+    sale.due_date = sale.due_date + (date - sale.date)
     sale.date = date
+    db.commit()
+
+
+def update_sale_due_date(
+    db: Session, business_id: uuid.UUID, sale_id: uuid.UUID, due_date: datetime
+) -> None:
+    """Extend (or shorten) the payment deadline of one invoice."""
+    sale = db.scalar(select(Sale).where(Sale.id == sale_id, Sale.business_id == business_id))
+    if sale is None:
+        raise ValueError("Sale not found.")
+    if due_date < sale.date:
+        raise ValueError("The payment deadline cannot be before the sale date.")
+    sale.due_date = due_date
     db.commit()
