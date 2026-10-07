@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: smartsme
       POSTGRES_DB: smartsme
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - smartsme_pgdata:/var/lib/postgresql/data
 
