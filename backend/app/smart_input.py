@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from .ai import ocr_space
 from .ai.client import ai_status, has_vision
-from .ai.lexicon import concepts_in
+from .ai.lexicon import concept_of_token, concepts_in, is_unit
 from .ai.nlp import ParsedCommand, parse_command
 from .ai.ocr import ALLOWED_MEDIA, ParsedInvoice, parse_invoice_image
 from .ai.slip import parse_slip
@@ -96,6 +96,22 @@ def _only(matches: list[T]) -> T | None:
     return matches[0] if len(matches) == 1 else None
 
 
+def _leading_qualifiers(tokens: list[str]) -> list[str]:
+    """The words in front of the first word the lexicon knows, minus units.
+
+    "ragi atta" is flour, but a particular flour: "ragi" says which. Words
+    *after* the known one are left alone, because in a note they are usually
+    the verb the parser failed to strip ("चावल दे दिया"), not part of the name.
+    """
+    out: list[str] = []
+    for token in tokens:
+        if concept_of_token(token):
+            return out
+        if not is_unit(token) and not token.isdigit():
+            out.append(token)
+    return []  # no known word at all, so nothing is being qualified
+
+
 def best_match(items: list[T], query: str | None) -> T | None:
     """Find the catalogue row a phrase is talking about, in any of three
     scripts, in five passes from certain to merely likely.
@@ -103,7 +119,10 @@ def best_match(items: list[T], query: str | None) -> T | None:
     1. the same name, exactly
     2. the same words, allowing for script and spelling ("अनीता" / "Anita")
     3. the same thing, by meaning ("चावल" / "chawal" / "ಅಕ್ಕಿ" -> rice ->
-       "Rice Bag 25kg") - `lexicon.py` supplies the vocabulary
+       "Rice Bag 25kg") - `lexicon.py` supplies the vocabulary. A word in
+       front of the known one ("ragi" in "ragi atta") must also appear in the
+       row's name; if no row has it, this pass declines rather than pick the
+       shop's only flour
     4. the same words in a different order
     5. the same consonants, and only when exactly one row has them - the last
        resort for what transliteration cannot recover, like स्टोर्स ("storsa")
@@ -138,6 +157,13 @@ def best_match(items: list[T], query: str | None) -> T | None:
     wanted = concepts_in(query)
     if wanted:
         by_concept = [item for item in items if wanted & concepts_in(item.name)]
+        qualifiers = set(_leading_qualifiers(needle_tokens))
+        if by_concept and qualifiers:
+            # "ragi atta" against "Wheat Flour 10kg" and "Ragi Flour 1kg": both
+            # are flour, only one is ragi. And against a shop with only wheat
+            # flour, the answer is no match - a wrong product at a real price
+            # is the one mistake a hurried confirm click lets through.
+            by_concept = [item for item in by_concept if qualifiers & set(_tokens(item.name))]
         if by_concept:
             # Several rice products is normal; the first is as good a guess as
             # any, and the confirm screen shows which one was chosen.
@@ -276,6 +302,11 @@ def ground_text(
         # parsed.
         for line in parsed.lineItems:
             matched_product = best_match(products, line.product)
+            if matched_product is None and line.english:
+                # The note's own word found nothing; try the model's English
+                # name for it, for catalogues kept in English ("साबूदाना" ->
+                # "sago" -> "Sago 500g"). The original word stays on the line.
+                matched_product = best_match(products, line.english)
             qty = int(line.quantity) if line.quantity and line.quantity > 0 else 1
             if matched_product:
                 price = (

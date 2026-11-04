@@ -78,8 +78,8 @@ class Example:
     note: str = ""
 
 
-def load_catalogue() -> Catalogue:
-    raw = json.loads((DATA / "catalogue.json").read_text(encoding="utf-8"))
+def load_catalogue(filename: str = "catalogue.json") -> Catalogue:
+    raw = json.loads((DATA / filename).read_text(encoding="utf-8"))
     return Catalogue(
         parties=[
             Row(
@@ -131,8 +131,8 @@ def _load(filename: str) -> list[Example]:
     return out
 
 
-def load_notes() -> list[Example]:
-    return _load("notes.jsonl")
+def load_notes(filename: str = "notes.jsonl") -> list[Example]:
+    return _load(filename)
 
 
 def load_slips() -> list[Example]:

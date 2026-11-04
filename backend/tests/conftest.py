@@ -329,6 +329,7 @@ GROUP_NAMES = {
     "tests/test_ai_mocked.py": "AI (mocked)",
     "tests/test_multilingual.py": "Languages",
     "tests/test_translation.py": "Translation",
+    "tests/test_grounding_oov.py": "Unknown words",
     "tests/test_ocr_slips.py": "Order slips (OCR)",
     "tests/test_health.py": "Business health",
     "tests/test_payments.py": "Payments & deadlines",

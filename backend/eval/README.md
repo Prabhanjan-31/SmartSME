@@ -96,13 +96,15 @@ headline numbers:
 | Engine | Exact | party F1 | items F1 |
 |---|---:|---:|---:|
 | heuristic (offline regex) | 85.7% | 94.8 | 91.9 |
-| Gemini 3.5 Flash Lite | **97.1%** | 100.0 | 98.4 |
+| Gemini 3.5 Flash Lite | **97.1%** | 100.0 | 96.8 |
 
 The gap is concentrated exactly where you would expect: on the messier
 English and Hinglish notes (no verb, no capitals, typos, two items in a line)
 the offline parser drops to 66.7% and 77.8% while the model holds 94.4%. On
-the two native scripts both are at or near 100%, because the normaliser in
-`app/ai/lang.py` does that work before either engine sees the text.
+the two native scripts both reach 100%: the model reads them directly, and the
+offline parser gets there because the normaliser in `app/ai/lang.py` rewrites
+the note into English word order before `heuristic_parse()` runs. The model
+path never calls the normaliser.
 
 ### Handwritten order slips (n=12, real photographs)
 

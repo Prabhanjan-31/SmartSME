@@ -23,6 +23,12 @@ class ParsedLine:
 
     product: str | None = None
     quantity: float | None = None
+    #: The model's English name for the product ("sago" for साबूदाना), or None.
+    #: `product` stays in the note's own script for display and for catalogues
+    #: kept in that script; this is a second key for catalogues kept in English,
+    #: and is only ever used when `product` itself finds nothing. The regex
+    #: parser cannot translate, so it always leaves this empty.
+    english: str | None = None
 
 
 @dataclass(slots=True)
@@ -86,7 +92,7 @@ def _prompt(text: str, today_iso: str) -> str:
     return f"""Extract one business event from the note and return ONLY a single minified JSON object with exactly these keys:
 - eventType: one of "SALE_CREATED" (sold/sale), "PURCHASE_CREATED" (bought/purchased from a supplier), "ORDER_CREATED" (a customer wants/needs something later), "EXPENSE_ADDED" (rent, salary, utilities, fuel, etc.).
 - party: the customer or supplier name, or null.
-- lineItems: an array of every product the note mentions, each {{ "product": string (singular, no unit words like "bags"/"packets"), "quantity": number }}. A note listing three things has three entries. Use an empty array when no product is named.
+- lineItems: an array of every product the note mentions, each {{ "product": string (singular, no unit words like "bags"/"packets"), "quantity": number, "english": string or null }}. "english" is the plain English name a shop's product list would use for that item, lowercase and singular (e.g. "rice" for "चावल", "jaggery" for "ಬೆಲ್ಲ", "gram flour" for "besan"); use null when "product" is already English or you do not know the English name. A note listing three things has three entries. Use an empty array when no product is named.
 - amount: total money value in rupees if stated, else null.
 - category: for EXPENSE_ADDED, exactly one of: {PROMPT_LIST}. Choose the closest; do not invent another word and do not answer in any language but English. null for everything else.
 - allInventory: true if the note refers to the ENTIRE inventory / all stock / everything in stock (e.g. "sell the entire inventory", "clear out all stock", "sell everything"); otherwise false. When true, leave lineItems empty.
@@ -142,7 +148,14 @@ def _lines(p: dict) -> list[ParsedLine]:
                 continue
             product = entry.get("product") or None
             if product:
-                out.append(ParsedLine(product=str(product), quantity=_num(entry.get("quantity"))))
+                english = entry.get("english")
+                out.append(
+                    ParsedLine(
+                        product=str(product),
+                        quantity=_num(entry.get("quantity")),
+                        english=str(english).strip() or None if isinstance(english, str) else None,
+                    )
+                )
         if out:
             return out
     # A model that answered the old way, or one that ignored the array.

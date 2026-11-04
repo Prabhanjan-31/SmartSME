@@ -56,14 +56,20 @@ def main(argv: list[str] | None = None) -> int:
         help="Seconds between calls. Free tiers are rate-limited; raise it on 429s.",
     )
     parser.add_argument("--name", default="latest", help="Output file name.")
+    parser.add_argument(
+        "--notes-file", default="notes.jsonl", help="Typed-note set in eval/data/."
+    )
+    parser.add_argument(
+        "--catalogue-file", default="catalogue.json", help="Catalogue in eval/data/."
+    )
     args = parser.parse_args(argv)
 
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     chosen = [e.strip() for e in args.engines.split(",") if e.strip()]
-    catalogue = load_catalogue()
-    notes = load_notes()
+    catalogue = load_catalogue(args.catalogue_file)
+    notes = load_notes(args.notes_file)
     slips = load_slips()
     if args.limit:
         notes, slips = notes[: args.limit], slips[: args.limit]

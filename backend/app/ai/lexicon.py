@@ -162,6 +162,27 @@ def _build_index() -> dict[str, str]:
 
 _INDEX = _build_index()
 
+#: Packaging, units and linking words. They sit in front of a product name
+#: ("2 packet sugar", "तेल के डिब्बे") without saying which product it is, so they
+#: never count as a qualifier - see `concept_of_token` and `best_match`.
+_UNIT_WORDS = """
+    kg kilo kgs g gm gram grams l ltr litre liter ml packet pack pkt bag bags bori
+    sack box tin dabba dabbi dibba bottle piece pcs dozen of ke ka ki
+    किलो ग्राम लीटर पैकेट बैग बोरी डिब्बा डिब्बे बोतल दर्जन के का की
+    ಕಿಲೋ ಗ್ರಾಂ ಲೀಟರ್ ಪ್ಯಾಕೆಟ್ ಬ್ಯಾಗ್ ಮೂಟೆ ಡಬ್ಬಿ ಬಾಟಲ್ ಡಜನ್
+"""
+_UNITS = {fold_phrase(w) for w in _UNIT_WORDS.split() if fold_phrase(w)}
+
+
+def concept_of_token(token: str) -> str | None:
+    """The concept one already-folded word names, or None."""
+    return _INDEX.get(token)
+
+
+def is_unit(token: str) -> bool:
+    """Is this already-folded word packaging, a unit or a linking word?"""
+    return token in _UNITS
+
 
 def concept_of(phrase: str | None) -> str | None:
     """The one concept this phrase names, or None if it names nothing known."""
@@ -201,4 +222,4 @@ def known_words() -> int:
     return len(_INDEX)
 
 
-__all__ = ["LEXICON", "concept_of", "concepts_in", "known_words"]
+__all__ = ["LEXICON", "concept_of", "concept_of_token", "concepts_in", "is_unit", "known_words"]

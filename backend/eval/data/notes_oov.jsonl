@@ -1,0 +1,32 @@
+// OUT-OF-VOCABULARY set. Written to probe what notes.jsonl does not: verbs and
+// grammar the normaliser in app/ai/lang.py was not written for (o001-o012), and
+// products missing from app/ai/lexicon.py (o013-o024). Score against
+// catalogue_oov.json, which adds those products. Still synthetic and labelled
+// once; it measures where the system breaks, not how often shopkeepers would.
+//
+//   python -m eval --notes-only --notes-file notes_oov.jsonl \
+//       --catalogue-file catalogue_oov.json --engines heuristic,google --delay 3.2 --name oov
+{"id": "o001", "lang": "hi", "note": "verb: de diya (gave); honorific ji", "text": "अनीता जी को 5 किलो चावल दे दिया", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Rice Bag 25kg", "quantity": 5}]}}
+{"id": "o002", "lang": "hi", "note": "verb: le li (took); ergative ne", "text": "कुमार ट्रेडर्स वालों ने 2 पैकेट चीनी ले ली", "gold": {"type": "sale", "party": "Kumar Traders", "items": [{"product": "Sugar Packet 1kg", "quantity": 2}]}}
+{"id": "o003", "lang": "hi", "note": "verb: mangvaye (had sent); ke dibbe", "text": "ABC सप्लायर्स से 10 तेल के डिब्बे मंगवाए", "gold": {"type": "purchase", "party": "ABC Suppliers", "items": [{"product": "Cooking Oil 1L", "quantity": 10}]}}
+{"id": "o004", "lang": "hi-latn", "note": "verb: de di; chai patti", "text": "Ramesh bhai ko 3 chai patti de di", "gold": {"type": "sale", "party": "Ramesh", "items": [{"product": "Tea Powder 500g", "quantity": 3}]}}
+{"id": "o005", "lang": "hi-latn", "note": "verb: aaya (came); bori", "text": "Sunrise Wholesale se 4 bori atta aaya", "gold": {"type": "purchase", "party": "Sunrise Wholesale", "items": [{"product": "Wheat Flour 10kg", "quantity": 4}]}}
+{"id": "o006", "lang": "hi-latn", "note": "verb: le gaye (took away); wale", "text": "Lathamma Provisions wale 6 sabun le gaye", "gold": {"type": "sale", "party": "Lathamma Provisions", "items": [{"product": "Soap Bar", "quantity": 6}]}}
+{"id": "o007", "lang": "kn", "note": "verb: kotte (gave); avarige", "text": "ಅನಿತಾ ಸ್ಟೋರ್ಸ್ ಅವರಿಗೆ ೫ ಕಿಲೋ ಅಕ್ಕಿ ಕೊಟ್ಟೆ", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Rice Bag 25kg", "quantity": 5}]}}
+{"id": "o008", "lang": "kn", "note": "verb: tagondru (took, colloquial)", "text": "ಕುಮಾರ್ ಟ್ರೇಡರ್ಸ್ ೩ ಪ್ಯಾಕೆಟ್ ಸಕ್ಕರೆ ತಗೊಂಡ್ರು", "gold": {"type": "sale", "party": "Kumar Traders", "items": [{"product": "Sugar Packet 1kg", "quantity": 3}]}}
+{"id": "o009", "lang": "kn", "note": "verb: bantu (came)", "text": "ಸನ್ರೈಸ್ ಹೋಲ್ಸೇಲ್ ಕಡೆಯಿಂದ ೮ ಎಣ್ಣೆ ಬಂತು", "gold": {"type": "purchase", "party": "Sunrise Wholesale", "items": [{"product": "Cooking Oil 1L", "quantity": 8}]}}
+{"id": "o010", "lang": "kn-latn", "note": "verb: kotte; avrige", "text": "Ramesh avrige 2 salt packet kotte", "gold": {"type": "sale", "party": "Ramesh", "items": [{"product": "Salt 1kg", "quantity": 2}]}}
+{"id": "o011", "lang": "kn-latn", "note": "verb: bandide (has come)", "text": "ABC Suppliers inda 5 coffee powder bandide", "gold": {"type": "purchase", "party": "ABC Suppliers", "items": [{"product": "Coffee Powder 200g", "quantity": 5}]}}
+{"id": "o012", "lang": "kn-latn", "note": "verb: tagondru; avru", "text": "Lathamma Provisions avru 10 biscuit tagondru", "gold": {"type": "sale", "party": "Lathamma Provisions", "items": [{"product": "Biscuit Pack", "quantity": 10}]}}
+{"id": "o013", "lang": "hi", "note": "product not in lexicon (sago)", "text": "अनीता स्टोर्स को 4 पैकेट साबूदाना बेचा", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Sago 500g", "quantity": 4}]}}
+{"id": "o014", "lang": "hi", "note": "product not in lexicon (raisins)", "text": "कुमार ट्रेडर्स को 2 पैकेट किशमिश बेची", "gold": {"type": "sale", "party": "Kumar Traders", "items": [{"product": "Raisins 200g", "quantity": 2}]}}
+{"id": "o015", "lang": "hi", "note": "product not in lexicon (camphor)", "text": "ABC सप्लायर्स से 20 कपूर के पैकेट खरीदे", "gold": {"type": "purchase", "party": "ABC Suppliers", "items": [{"product": "Camphor Pack", "quantity": 20}]}}
+{"id": "o016", "lang": "hi-latn", "note": "product not in lexicon (dates)", "text": "Ramesh ko 3 packet khajoor becha", "gold": {"type": "sale", "party": "Ramesh", "items": [{"product": "Dates 500g", "quantity": 3}]}}
+{"id": "o017", "lang": "hi-latn", "note": "catalogue uses the Indian word", "text": "Sunrise Wholesale se 10 kilo ragi atta kharida", "gold": {"type": "purchase", "party": "Sunrise Wholesale", "items": [{"product": "Ragi Flour 1kg", "quantity": 10}]}}
+{"id": "o018", "lang": "hi-latn", "note": "catalogue uses the Indian word", "text": "Anita Stores ko 5 kilo jowar becha", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Jowar 1kg", "quantity": 5}]}}
+{"id": "o019", "lang": "kn", "note": "product not in lexicon (sago)", "text": "ಅನಿತಾ ಸ್ಟೋರ್ಸ್ ಗೆ ೩ ಪ್ಯಾಕೆಟ್ ಸಾಬಕ್ಕಿ ಮಾರಿದೆ", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Sago 500g", "quantity": 3}]}}
+{"id": "o020", "lang": "kn", "note": "product not in lexicon (raisins)", "text": "ಕುಮಾರ್ ಟ್ರೇಡರ್ಸ್ ಗೆ ೨ ಪ್ಯಾಕೆಟ್ ಒಣದ್ರಾಕ್ಷಿ ಮಾರಿದೆ", "gold": {"type": "sale", "party": "Kumar Traders", "items": [{"product": "Raisins 200g", "quantity": 2}]}}
+{"id": "o021", "lang": "kn", "note": "product not in lexicon (camphor)", "text": "ಎಬಿಸಿ ಸಪ್ಲೈಯರ್ಸ್ ಇಂದ ೧೫ ಕರ್ಪೂರ ಖರೀದಿಸಿದೆ", "gold": {"type": "purchase", "party": "ABC Suppliers", "items": [{"product": "Camphor Pack", "quantity": 15}]}}
+{"id": "o022", "lang": "kn-latn", "note": "catalogue uses the Indian word", "text": "Ramesh ge 4 kilo ragi hittu maride", "gold": {"type": "sale", "party": "Ramesh", "items": [{"product": "Ragi Flour 1kg", "quantity": 4}]}}
+{"id": "o023", "lang": "kn-latn", "note": "product not in lexicon (dates)", "text": "Anita Stores ge 2 packet kharjura maride", "gold": {"type": "sale", "party": "Anita Stores", "items": [{"product": "Dates 500g", "quantity": 2}]}}
+{"id": "o024", "lang": "kn-latn", "note": "Kannada name (jola) differs from catalogue (Jowar)", "text": "Sunrise Wholesale inda 6 kilo jola kharidiside", "gold": {"type": "purchase", "party": "Sunrise Wholesale", "items": [{"product": "Jowar 1kg", "quantity": 6}]}}

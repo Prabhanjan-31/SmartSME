@@ -1,0 +1,630 @@
+{
+  "notes.heuristic": [
+    {
+      "id": "o001",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "\u0905\u0928\u0940\u0924\u093e \u091c\u0940",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o002",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": null,
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o003",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o004",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Tea Powder 500g",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o005",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o006",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": null,
+      "type": "sale",
+      "items": [
+        {
+          "product": "Soap Bar",
+          "quantity": 6
+        }
+      ]
+    },
+    {
+      "id": "o007",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "\u0c85\u0cb5\u0cb0\u0cbf",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o008",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": null,
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o009",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "\u0cb8\u0ca8\u0ccd\u0cb0\u0cc8\u0cb8\u0ccd \u0cb9\u0ccb\u0cb2\u0ccd\u0cb8\u0cc7\u0cb2\u0ccd",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 8
+        }
+      ]
+    },
+    {
+      "id": "o010",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": null,
+      "type": "sale",
+      "items": [
+        {
+          "product": "Salt 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o011",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Coffee Powder 200g",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o012",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": null,
+      "type": "sale",
+      "items": [
+        {
+          "product": "Biscuit Pack",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o013",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0938\u093e\u092c\u0942\u0926\u093e\u0928\u093e",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o014",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0915\u093f\u0936\u092e\u093f\u0936",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o015",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "\u0915\u092a\u0942\u0930 \u0915\u0947 \u0916\u0930\u0940\u0926\u0947",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "o016",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Khajoor",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o017",
+      "engine_used": "Heuristic",
+      "seconds": 0.02,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o018",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Jowar 1kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o019",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0cb8\u0cbe\u0cac\u0c95\u0ccd\u0c95\u0cbf",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o020",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0c92\u0ca3\u0ca6\u0ccd\u0cb0\u0cbe\u0c95\u0ccd\u0cb7\u0cbf",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o021",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "\u0c8e\u0cac\u0cbf\u0cb8\u0cbf \u0cb8\u0caa\u0ccd\u0cb2\u0cc8\u0caf\u0cb0\u0ccd\u0cb8\u0ccd",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "\u0c95\u0cb0\u0ccd\u0caa\u0cc2\u0cb0",
+          "quantity": 15
+        }
+      ]
+    },
+    {
+      "id": "o022",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o023",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Kharjura",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o024",
+      "engine_used": "Heuristic",
+      "seconds": 0.0,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Jola",
+          "quantity": 6
+        }
+      ]
+    }
+  ],
+  "notes.google": [
+    {
+      "id": "o001",
+      "engine_used": "Google Gemini",
+      "seconds": 22.97,
+      "party": "\u0905\u0928\u0940\u0924\u093e \u091c\u0940",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o002",
+      "engine_used": "Google Gemini",
+      "seconds": 18.14,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o003",
+      "engine_used": "Google Gemini",
+      "seconds": 8.91,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o004",
+      "engine_used": "Google Gemini",
+      "seconds": 12.86,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Tea Powder 500g",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o005",
+      "engine_used": "Google Gemini",
+      "seconds": 20.64,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o006",
+      "engine_used": "Google Gemini",
+      "seconds": 12.7,
+      "party": "Lathamma Provisions",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Soap Bar",
+          "quantity": 6
+        }
+      ]
+    },
+    {
+      "id": "o007",
+      "engine_used": "Google Gemini",
+      "seconds": 57.56,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o008",
+      "engine_used": "Google Gemini",
+      "seconds": 16.48,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o009",
+      "engine_used": "Google Gemini",
+      "seconds": 16.44,
+      "party": "\u0cb8\u0ca8\u0ccd\u0cb0\u0cc8\u0cb8\u0ccd \u0cb9\u0ccb\u0cb2\u0ccd\u0cb8\u0cc7\u0cb2\u0ccd",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 8
+        }
+      ]
+    },
+    {
+      "id": "o010",
+      "engine_used": "Google Gemini",
+      "seconds": 19.47,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Salt 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o011",
+      "engine_used": "Google Gemini",
+      "seconds": 21.78,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Coffee Powder 200g",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o012",
+      "engine_used": "Google Gemini",
+      "seconds": 18.08,
+      "party": "Lathamma Provisions",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Biscuit Pack",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o013",
+      "engine_used": "Heuristic",
+      "seconds": 1.45,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0938\u093e\u092c\u0942\u0926\u093e\u0928\u093e",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o014",
+      "engine_used": "Google Gemini",
+      "seconds": 15.17,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0915\u093f\u0936\u092e\u093f\u0936",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o015",
+      "engine_used": "Google Gemini",
+      "seconds": 15.12,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "\u0915\u092a\u0942\u0930",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "o016",
+      "engine_used": "Google Gemini",
+      "seconds": 10.81,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "khajoor",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o017",
+      "engine_used": "Google Gemini",
+      "seconds": 19.84,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o018",
+      "engine_used": "Google Gemini",
+      "seconds": 22.39,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Jowar 1kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o019",
+      "engine_used": "Google Gemini",
+      "seconds": 10.95,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0cb8\u0cbe\u0cac\u0c95\u0ccd\u0c95\u0cbf",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o020",
+      "engine_used": "Google Gemini",
+      "seconds": 11.23,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "\u0c92\u0ca3\u0ca6\u0ccd\u0cb0\u0cbe\u0c95\u0ccd\u0cb7\u0cbf",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o021",
+      "engine_used": "Google Gemini",
+      "seconds": 18.19,
+      "party": "\u0c8e\u0cac\u0cbf\u0cb8\u0cbf \u0cb8\u0caa\u0ccd\u0cb2\u0cc8\u0caf\u0cb0\u0ccd\u0cb8\u0ccd",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "\u0c95\u0cb0\u0ccd\u0caa\u0cc2\u0cb0",
+          "quantity": 15
+        }
+      ]
+    },
+    {
+      "id": "o022",
+      "engine_used": "Google Gemini",
+      "seconds": 7.02,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o023",
+      "engine_used": "Google Gemini",
+      "seconds": 7.41,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "kharjura",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o024",
+      "engine_used": "Google Gemini",
+      "seconds": 17.05,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "jola",
+          "quantity": 6
+        }
+      ]
+    }
+  ]
+}
