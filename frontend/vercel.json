@@ -6,8 +6,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://smartsme-api.onrender.com/api/:path*"
+      "destination": "https://smartsme-api-my8f.onrender.com/api/:path*"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
