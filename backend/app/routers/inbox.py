@@ -85,7 +85,11 @@ def list_inbox(
         "counts": {s: counts.get(s, 0) for s in STATUS_LABELS},
         "pending": counts.get("pending", 0),
         "inboxToken": ctx.business.inbox_token,
-        "inboxAddress": f"orders+{ctx.business.inbox_token}@{settings.inbox_domain}",
+        "inboxAddress": (
+            f"{settings.email_user.split('@')[0]}+{ctx.business.inbox_token}@{settings.email_user.split('@')[1]}"
+            if "@" in settings.email_user
+            else f"orders+{ctx.business.inbox_token}@{settings.inbox_domain}"
+        ),
         # Which channels are actually switched on. Without this the page cannot
         # tell "no new mail" from "nobody is collecting mail", and those look
         # identical from the outside - which is exactly how an afternoon gets

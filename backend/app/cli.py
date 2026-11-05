@@ -101,9 +101,11 @@ def inbox_token(name: str | None) -> int:
         print("No businesses found. Start the API once to seed the demo.", file=sys.stderr)
         return 1
     for business in rows:
+        email_prefix = settings.email_user.split("@")[0] if "@" in settings.email_user else "orders"
+        email_domain = settings.email_user.split("@")[1] if "@" in settings.email_user else settings.inbox_domain
         print(f"{business.name}")
         print(f"  token     {business.inbox_token}")
-        print(f"  email     orders+{business.inbox_token}@{settings.inbox_domain}")
+        print(f"  email     {email_prefix}+{business.inbox_token}@{email_domain}")
         print(f"  telegram  /link {business.inbox_token}")
         print()
     return 0
