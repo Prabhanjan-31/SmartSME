@@ -235,3 +235,59 @@ def test_password_round_trip_and_format():
     assert verify_password("demo1234", stored)
     assert not verify_password("wrong", stored)
     assert not verify_password("demo1234", "garbage")
+
+
+# --- The shop's clock ------------------------------------------------------
+#
+# A hosted server runs in UTC. Every date in the app is the server's local
+# time, so for a shop in India "today" there is five and a half hours behind
+# the shopkeeper's own, and a payment taken at one in the morning would be
+# refused as dated tomorrow. `apply_timezone` puts the process on the shop's
+# clock. Windows has no `tzset`, so the calls are stubbed and the test runs
+# everywhere.
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    """A machine with a `tzset`, an empty environment, and a known zone."""
+    from app.core import config
+
+    # A plain dict, so nothing here reaches the real environment. (pytest
+    # keeps a variable of its own in it, hence `.get("TZ")` below.)
+    env: dict[str, str] = {}
+    applied: list[str] = []
+    monkeypatch.setattr(config.os, "environ", env)
+    monkeypatch.setattr(config.time, "tzset", lambda: applied.append(env["TZ"]), raising=False)
+    monkeypatch.setattr(config, "_zone_exists", lambda name: name == "Asia/Kolkata")
+    return config, env, applied
+
+
+def test_the_process_is_put_on_the_shop_clock(clock):
+    config, env, applied = clock
+    assert config.apply_timezone("Asia/Kolkata") == "Asia/Kolkata"
+    assert env.get("TZ") == "Asia/Kolkata"
+    assert applied == ["Asia/Kolkata"]
+
+
+def test_a_time_zone_already_set_on_the_machine_wins(clock):
+    config, env, applied = clock
+    env["TZ"] = "Europe/London"
+    assert config.apply_timezone("Asia/Kolkata") == "Europe/London"
+    assert env.get("TZ") == "Europe/London"
+    assert applied == []
+
+
+@pytest.mark.parametrize("name", ["", "   ", "Asia/Nowhere"])
+def test_a_blank_or_unknown_zone_leaves_the_machine_clock_alone(clock, name):
+    """An unknown name is not an error to the C library. It quietly means UTC,
+    which is the very thing being fixed, so it is never handed over."""
+    config, env, applied = clock
+    assert config.apply_timezone(name) is None
+    assert "TZ" not in env
+    assert applied == []
+
+
+def test_the_default_zone_is_india():
+    from app.core.config import Settings
+
+    assert Settings.model_fields["app_timezone"].default == "Asia/Kolkata"

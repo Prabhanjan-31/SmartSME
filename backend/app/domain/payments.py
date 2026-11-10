@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..core.utils import round2
+from ..core.utils import format_date, round2
 from ..models import Business, Party, Payment, Purchase, Sale
 from ..schemas import SettleResult
 from ..workflow import payment_status_for
@@ -152,6 +152,40 @@ def _apply_to_document(doc: Sale | Purchase, amount: float) -> float:
     return applied
 
 
+def payment_moment(
+    doc_date: datetime, date: datetime | None, noun: str, now: datetime | None = None
+) -> datetime:
+    """When a payment is recorded as made, or a ValueError saying why not.
+
+    Both rules are about calendar days, never the clock. A date picked in the
+    UI carries no time and is stored as noon, while an order accepted from
+    Telegram or email is stamped with the minute it was accepted. Comparing
+    the two as instants made an invoice raised at three in the afternoon
+    impossible to pay on its own day: noon is "before" it.
+
+    A payment on the document's own day is never stored earlier than the
+    document, so the ledger still reads in the order things happened.
+    """
+    now = now or datetime.now()
+    when = date or now
+    if doc_date.date() > now.date():
+        # No day is both on or after the document's and on or before today,
+        # so say that, whichever date was picked.
+        raise ValueError(
+            f"This {noun} is dated {format_date(doc_date)}, which has not arrived yet. "
+            f"Record the payment on that day, or correct the {noun} date first."
+        )
+    if when.date() > now.date():
+        raise ValueError(
+            f"A payment cannot be dated in the future. Today is {format_date(now)}."
+        )
+    if when.date() < doc_date.date():
+        raise ValueError(
+            f"A payment cannot be dated before the {noun} itself ({format_date(doc_date)})."
+        )
+    return max(when, doc_date)
+
+
 def record_payment(
     db: Session,
     business_id: uuid.UUID,
@@ -167,7 +201,8 @@ def record_payment(
     """Record money in (sale) or money out (purchase), reducing the party balance.
 
     `date` is when the money moved; it defaults to now and can be back-dated
-    for a payment that was logged late, but never to before the document.
+    for a payment that was logged late, but never to a day before the
+    document and never to a day after today: see `payment_moment`.
     `mode`, `reference` and `details` say how: see `PAYMENT_MODES`.
     """
     amt = round2(amount)
@@ -193,9 +228,7 @@ def record_payment(
     if doc.status == "cancelled":
         raise ValueError(f"Cannot record a payment on a cancelled {noun}.")
 
-    when = date or datetime.now()
-    if when < doc.date:
-        raise ValueError(f"A payment cannot be dated before the {noun} itself.")
+    when = payment_moment(doc.date, date, noun)
 
     applied = _apply_to_document(doc, amt)
     if applied > 0:

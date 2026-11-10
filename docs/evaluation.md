@@ -19,37 +19,135 @@ was right, which is the share a shopkeeper could accept without editing
 anything. A wrong answer costs twice, once as a miss and once as a fabrication,
 because a wrong customer is worse than no customer.
 
-Last run: 2026-09-16. Regenerate with `python -m eval` from `backend`.
+Last run: 2026-11-10 for the typed notes and the unknown-word set, both
+engines; 2026-09-16 for the slips, consistency and latency. Regenerate with
+`python -m eval` from `backend`.
 
 ## Typed notes (n = 70)
 
 | Engine | Exact | type F1 | party F1 | items F1 | amount F1 | category F1 |
 |---|---:|---:|---:|---:|---:|---:|
-| Heuristic (offline regex) | 85.7% | 100.0 | 94.8 | 91.9 | 95.2 | 100.0 |
-| Gemini 3.5 Flash Lite | **97.1%** | 100.0 | **100.0** | **98.4** | **100.0** | 100.0 |
+| Heuristic (offline regex) | 87.1% | 100.0 | 94.8 | 93.7 | 95.2 | 100.0 |
+| Gemini 3.5 Flash Lite | **100.0%** | 100.0 | **100.0** | **100.0** | **100.0** | 100.0 |
 
 By language variant, exact-match:
 
 | Variant | n | Heuristic | Gemini |
 |---|---:|---:|---:|
-| English | 18 | 66.7% | **94.4%** |
-| Hindi, Latin letters | 18 | 77.8% | **94.4%** |
+| English | 18 | 66.7% | **100.0%** |
+| Hindi, Latin letters | 18 | 83.3% | **100.0%** |
 | Hindi, Devanagari | 11 | 100.0% | 100.0% |
 | Kannada, Latin letters | 12 | 100.0% | 100.0% |
 | Kannada script | 11 | 100.0% | 100.0% |
 
 **What this says.** The offline parser is competitive on well-formed notes and
-falls behind on messy ones: no verb, no capitals, typos, two items on a line.
+falls behind on messy ones: no verb, no capitals, typos, two items on a line,
 which is where English and Hinglish lose their points. Both native scripts score
-at or near 100% for both engines, because [`app/ai/lang.py`](../backend/app/ai/lang.py)
-normalises the sentence before either engine sees it; that work is shared, so it
-does not distinguish them.
+100% for both engines, but for different reasons. The model reads Hindi and
+Kannada directly: its prompt names the languages, scripts and common verbs, and
+the note reaches it unchanged. The offline parser only gets there because
+[`app/ai/lang.py`](../backend/app/ai/lang.py) first rewrites the note into
+English word order, which `heuristic_parse()` does and the model path does not.
+On these notes the two engines tie, so the native-script rows cannot separate
+them.
+
+**Against the September run.** The same seventy notes scored 85.7% (items F1
+91.9) for the offline parser and 97.1% (items F1 96.8) for the model on
+2026-09-16. The two notes the model missed then both put two items on one line
+("ramesh ko 2 chai aur 3 biscuit becha", "anita stores 5 rice 2 sugar") and
+lost the second one. Both are read in full now, and the first is right for the
+offline parser as well; on the second it still finds no customer. The model's
+prompt also gained its [point of view](smart-input.md#point-of-view) paragraph
+since then, and no note it got right in September is wrong now.
+
+A perfect score on seventy author-written notes is the ceiling of this test,
+not of the model. The set can no longer tell two good engines apart, which is
+what the [unknown-word set](#words-outside-the-lexicon-n--24) below is for.
+
+The model's row is the model's own answer for all seventy notes. On the first
+pass the provider answered 503 (busy) for eight of them, the pipeline fell
+back to the offline parser as designed, and the harness flagged those rows;
+they were run again on their own until the model answered. Per-note results:
+[`notes_after.md`](../backend/eval/results/notes_after.md) (dated 2026-11-04;
+the offline parser's run of 2026-11-10 reproduced it exactly) and
+[`notes_after_gemini.md`](../backend/eval/results/notes_after_gemini.md).
 
 **What this does not say.** These notes are **synthetic**, written by the same
 author as the parser. The first fifty scored 100% on the heuristic, which says
 more about who wrote them than about the parser; twenty deliberately messier
-ones brought it to 85.7%. Numbers from author-written data cannot tell you how
-the system behaves for a stranger.
+ones brought it down to 85.7%, and it is 87.1% today. Numbers from
+author-written data cannot tell you how the system behaves for a stranger.
+
+## Words outside the lexicon (n = 24)
+
+The seventy notes above use the words the system was built around. This set is
+the opposite: 24 notes written to break it, six in each of four variants
+(Hindi and Kannada, each in its own script and in Latin letters). Half use
+verbs and grammar the offline normaliser was never taught ("de di", "le
+gaye", "ಕೊಟ್ಟೆ", "bandide"). The other half name
+products the lexicon has never heard of (sago, raisins, camphor, dates, ragi
+flour, jowar), scored against a catalogue that stocks them
+([`catalogue_oov.json`](../backend/eval/data/catalogue_oov.json)).
+
+| Engine | Exact | type F1 | party F1 | items F1 |
+|---|---:|---:|---:|---:|
+| Heuristic, before the two rules below | 20.8% | 95.8 | 69.8 | 54.2 |
+| Heuristic | 29.2% | 95.8 | 69.8 | 62.5 |
+| Gemini 3.5 Flash Lite, before | 45.8% | 100.0 | 87.5 | 54.2 |
+| Gemini 3.5 Flash Lite | **83.3%** | 100.0 | **91.7** | **91.7** |
+
+By language variant, exact-match, as it stands now:
+
+| Variant | n | Heuristic | Gemini |
+|---|---:|---:|---:|
+| Hindi, Devanagari | 6 | 16.7% | 83.3% |
+| Hindi, Latin letters | 6 | 66.7% | **100.0%** |
+| Kannada script | 6 | 0.0% | 66.7% |
+| Kannada, Latin letters | 6 | 33.3% | 83.3% |
+
+**What moved it.** Two rules in grounding, described under
+[Words the lexicon does not know](smart-input.md#words-the-lexicon-does-not-know):
+
+1. **A qualifier has to be honoured.** "ragi atta" used to come back as
+   `Wheat Flour 10kg`, because "atta" is a known word and "ragi" was ignored: a
+   wrong product, offered with confidence. Now a product must name the
+   qualifier, so the note finds `Ragi Flour 1kg` or finds nothing. This helps
+   both engines, and it is the whole of the offline parser's gain (two notes).
+2. **The model also says what the item is in English.** "साबूदाना" matches
+   nothing in an English catalogue; "sago" matches `Sago 500g`. The English
+   name is tried only when the note's own word finds nothing. Only the model
+   can supply it, which is why Gemini's items F1 went from 54.2 to 91.7 and
+   the offline parser's did not.
+
+**What still fails.** Four notes, for the model:
+
+```
+ಸನ್ರೈಸ್ ಹೋಲ್ಸೇಲ್ ಕಡೆಯಿಂದ ೮ ಎಣ್ಣೆ ಬಂತು          supplier left in Kannada script, not
+ಎಬಿಸಿ ಸಪ್ಲೈಯರ್ಸ್ ಇಂದ ೧೫ ಕರ್ಪೂರ ಖರೀದಿಸಿದೆ       matched to the English name on file
+ABC सप्लायर्स से 20 कपूर के पैकेट खरीदे           item came back as "कपूर के पैकेट",
+                                              unit attached, and matched no product
+Sunrise Wholesale inda 6 kilo jola kharidiside  "jola" (jowar) matched no product
+```
+
+The offline parser stays near 29%, and that is the expected result, not a bug
+to chase. It still tells a sale from a purchase (type F1 95.8); what it cannot
+do is name a product it has never seen or pick a customer out of grammar it
+was not written for, and no rule will teach it that "साबूदाना" is sago. This
+is the case for keeping a model in the loop, made with numbers.
+
+**How to read it.** A miss here is a product or a name left unmatched on the
+confirm screen for the shopkeeper to fill in, not a wrong product: the
+qualifier rule exists so that an unknown word is declined and not guessed. And
+the set is small and adversarial on purpose. One note is 4.2 points, and each
+variant row is six notes, so the variant figures show where the system breaks,
+not how often it would for a real shopkeeper.
+
+The "before" rows are from 2026-11-04
+([`oov.md`](../backend/eval/results/oov.md)). In that run one of the 24 Gemini
+rows was answered by the offline parser, so read 45.8% as "about 46%". The
+current rows are [`oov_after.md`](../backend/eval/results/oov_after.md) and
+[`oov_after_gemini.md`](../backend/eval/results/oov_after_gemini.md); one note
+hit a 503 on the model's first pass and was run again, as above.
 
 ## Handwritten order slips (n = 12, real photographs)
 
@@ -111,7 +209,7 @@ anita stores 5 rice 2 sugar    items were sometimes [Rice Bag 25kg x5] and
 ```
 
 Extraction is not writing: there is no value in sampling. Accuracy was unchanged
-at 97.1% after the switch, so determinism here was free.
+after the switch (97.1% at the time), so determinism here was free.
 
 ## Latency
 

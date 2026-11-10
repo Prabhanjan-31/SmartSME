@@ -60,6 +60,7 @@ export function Events() {
       <PageHeader
         title="Event bus"
         description="The transactional outbox, draining into the workflow engine."
+        info="Every sale, purchase, expense and stock change is written here first as an event, then applied: stock and balances update and the workflow rules run. Pending is waiting its turn, Done has been applied, and Dead-letter failed five times and needs looking at. Most days there is nothing to do on this page."
       >
         <Can do={PERMISSIONS.eventsOperate}>
           <Button

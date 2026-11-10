@@ -179,6 +179,14 @@ export function SmartInput() {
       <PageHeader
         title="Smart Input Engine"
         description="Turn plain language or a photo into structured business events. You approve before anything is published."
+        info={
+          <>
+            Write a note the way you would say it, such as &ldquo;sold 5 rice bags to Anita Stores,
+            paid 500&rdquo;, or upload a photo of a bill or an order slip. English, Hindi and
+            Kannada are understood. You get a draft to check and correct, and nothing is saved until
+            you press Confirm &amp; publish.
+          </>
+        }
       />
 
       <Card className="p-4">

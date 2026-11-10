@@ -1,0 +1,316 @@
+{
+  "notes.google": [
+    {
+      "id": "o001",
+      "engine_used": "Google Gemini",
+      "seconds": 8.95,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o002",
+      "engine_used": "Google Gemini",
+      "seconds": 3.05,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o003",
+      "engine_used": "Google Gemini",
+      "seconds": 2.34,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o004",
+      "engine_used": "Google Gemini",
+      "seconds": 8.8,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Tea Powder 500g",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o005",
+      "engine_used": "Google Gemini",
+      "seconds": 11.31,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Wheat Flour 10kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o006",
+      "engine_used": "Google Gemini",
+      "seconds": 1.11,
+      "party": "Lathamma Provisions",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Soap Bar",
+          "quantity": 6
+        }
+      ]
+    },
+    {
+      "id": "o007",
+      "engine_used": "Google Gemini",
+      "seconds": 2.48,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Rice Bag 25kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o008",
+      "engine_used": "Google Gemini",
+      "seconds": 8.88,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sugar Packet 1kg",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o009",
+      "engine_used": "Google Gemini",
+      "seconds": 15.08,
+      "party": "\u0cb8\u0ca8\u0ccd\u0cb0\u0cc8\u0cb8\u0ccd \u0cb9\u0ccb\u0cb2\u0ccd\u0cb8\u0cc7\u0cb2\u0ccd",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Cooking Oil 1L",
+          "quantity": 8
+        }
+      ]
+    },
+    {
+      "id": "o010",
+      "engine_used": "Google Gemini",
+      "seconds": 12.89,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Salt 1kg",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o011",
+      "engine_used": "Google Gemini",
+      "seconds": 1.56,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Coffee Powder 200g",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o012",
+      "engine_used": "Google Gemini",
+      "seconds": 9.33,
+      "party": "Lathamma Provisions",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Biscuit Pack",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o013",
+      "engine_used": "Google Gemini",
+      "seconds": 8.16,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sago 500g",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o014",
+      "engine_used": "Google Gemini",
+      "seconds": 1.22,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Raisins 200g",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o015",
+      "engine_used": "Google Gemini",
+      "seconds": 1.23,
+      "party": "ABC Suppliers",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "\u0915\u092a\u0942\u0930 \u0915\u0947 \u092a\u0948\u0915\u0947\u091f",
+          "quantity": 20
+        }
+      ]
+    },
+    {
+      "id": "o016",
+      "engine_used": "Google Gemini",
+      "seconds": 6.17,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Dates 500g",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o017",
+      "engine_used": "Google Gemini",
+      "seconds": 3.42,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Ragi Flour 1kg",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "id": "o018",
+      "engine_used": "Google Gemini",
+      "seconds": 7.19,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Jowar 1kg",
+          "quantity": 5
+        }
+      ]
+    },
+    {
+      "id": "o019",
+      "engine_used": "Google Gemini",
+      "seconds": 1.23,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Sago 500g",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "id": "o020",
+      "engine_used": "Google Gemini",
+      "seconds": 1.19,
+      "party": "Kumar Traders",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Raisins 200g",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o021",
+      "engine_used": "Google Gemini",
+      "seconds": 6.84,
+      "party": "\u0c8e\u0cac\u0cbf\u0cb8\u0cbf \u0cb8\u0caa\u0ccd\u0cb2\u0cc8\u0caf\u0cb0\u0ccd\u0cb8\u0ccd",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "Camphor Pack",
+          "quantity": 15
+        }
+      ]
+    },
+    {
+      "id": "o022",
+      "engine_used": "Google Gemini",
+      "seconds": 6.58,
+      "party": "Ramesh",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Ragi Flour 1kg",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "id": "o023",
+      "engine_used": "Google Gemini",
+      "seconds": 6.2,
+      "party": "Anita Stores",
+      "type": "sale",
+      "items": [
+        {
+          "product": "Dates 500g",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "id": "o024",
+      "engine_used": "Google Gemini",
+      "seconds": 4.16,
+      "party": "Sunrise Wholesale",
+      "type": "purchase",
+      "items": [
+        {
+          "product": "jola",
+          "quantity": 6
+        }
+      ]
+    }
+  ]
+}

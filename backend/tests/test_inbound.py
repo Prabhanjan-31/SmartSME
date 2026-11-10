@@ -14,17 +14,20 @@ call made by a signed-in user.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta
 from email.message import EmailMessage
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.db import SessionLocal
+from app.core.utils import round2
+from app.domain import sales as sales_domain
 from app.inbound import email as email_channel
 from app.inbound import telegram as telegram_channel
 from app.inbound.collector import _link_chat
 from app.inbound.pipeline import ingest
-from app.models import Business, ChannelLink, InboundMessage
+from app.models import Business, ChannelLink, Expense, InboundMessage, Purchase, Sale
 
 
 @pytest.fixture
@@ -385,6 +388,234 @@ def test_the_recorded_source_names_the_channel(client, workspace, inbox_token):
 
     sources = {s["source"] for s in client.get("/api/sales").json()["rows"]}
     assert {"email", "telegram"} <= sources
+
+
+def test_an_order_accepted_in_the_afternoon_can_be_paid_that_day(
+    client, workspace, inbox_token, monkeypatch
+):
+    """An accepted order carries no date, so the sale is stamped with the
+    minute it was accepted. The payment dialog sends a bare day, stored as
+    noon, and "noon is before 6.30pm" refused a payment on the invoice's own
+    day. Typed notes never hit it: Smart Input sends a bare day too."""
+
+    class Afternoon(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.now().replace(hour=18, minute=30, second=0, microsecond=0)
+
+    monkeypatch.setattr(sales_domain, "datetime", Afternoon)
+
+    with SessionLocal() as db:
+        _link_chat(db, "4242", inbox_token, "Anita")
+        parsed = telegram_channel.to_incoming(_update("2 Cooking Oil"))
+        parsed.route_key = parsed.external_id
+        parsed.external_id = "4242:1"
+        ingest(db, parsed)
+
+    def sales() -> dict[str, dict]:
+        return {s["id"]: s for s in client.get("/api/sales").json()["rows"]}
+
+    before = sales()
+    row = client.get("/api/inbox").json()["rows"][0]
+    draft = dict(row["draft"])
+    draft["items"] = [
+        {
+            "productId": workspace["productId"],
+            "description": "Cooking Oil",
+            "quantity": 2,
+            "unitPrice": 140,
+        }
+    ]
+    assert draft.get("date") is None
+    assert client.post(f"/api/inbox/{row['id']}/accept", json=draft).status_code == 200
+
+    (sale,) = (s for id_, s in sales().items() if id_ not in before)
+    assert sale["source"] == "telegram"
+    assert sale["date"].endswith("T18:30:00")
+    today = datetime.now().strftime("%Y-%m-%d")
+    paid = client.post(f"/api/sales/{sale['id']}/payment", json={"amount": 50, "date": today})
+    assert paid.status_code == 200, paid.text
+    assert client.get(f"/api/sales/{sale['id']}").json()["amountPaid"] == 50
+
+
+# ---------------------------------------------------------------------------
+# The review window
+#
+# It shows who an order is for, its day and what it comes to, and lets the
+# reviewer change the first two (and the direction) before Record. These pin
+# the half of that which lives on the server: what the window is given to work
+# with, and that what it sends back is what goes into the books.
+# ---------------------------------------------------------------------------
+def _oil(quantity: int, price: float, workspace: dict) -> dict:
+    return {
+        "productId": workspace["productId"],
+        "description": "Cooking Oil",
+        "quantity": quantity,
+        "unitPrice": price,
+    }
+
+
+def _oil_stock(client, workspace) -> int:
+    rows = client.get("/api/products").json()["rows"]
+    return {p["id"]: p for p in rows}[workspace["productId"]]["stock"]
+
+
+def test_what_the_reviewer_corrects_is_what_gets_recorded(
+    client, workspace, inbox_token, business_id
+):
+    """The parser read a sale to Anita Stores, today. The reviewer says it was
+    a purchase from ABC Suppliers three days ago. The books get the reviewer's
+    version, and so does the queue row: "read as sale for Anita Stores" beside
+    a recorded purchase would be a lie."""
+    with SessionLocal() as db:
+        _deliver(
+            db,
+            _raw_email(
+                f"orders+{inbox_token}@smartsme.local", "Order", "4 Cooking Oil to Anita Stores"
+            ),
+        )
+        sales_before = db.scalar(
+            select(func.count()).select_from(Sale).where(Sale.business_id == business_id)
+        )
+
+    row = client.get("/api/inbox").json()["rows"][0]
+    assert row["draft"]["suggestedType"] == "sale"
+    assert row["draft"]["partyName"] == "Anita Stores"
+    assert row["draft"]["date"] is None
+
+    day = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+    opening = _oil_stock(client, workspace)
+    corrected = {
+        **row["draft"],
+        "type": "purchase",
+        "suggestedType": "purchase",
+        "partyId": workspace["supplierId"],
+        "partyName": "ABC Suppliers",
+        "date": day,
+        "items": [_oil(4, 100, workspace)],
+    }
+    accepted = client.post(f"/api/inbox/{row['id']}/accept", json=corrected)
+    assert accepted.status_code == 200, accepted.text
+    reference = accepted.json()["ok"].split()[1]
+
+    with SessionLocal() as db:
+        purchase = db.scalars(
+            select(Purchase).where(
+                Purchase.business_id == business_id, Purchase.reference_number == reference
+            )
+        ).one()
+        assert str(purchase.party_id) == workspace["supplierId"]
+        # A day that was picked is stored as that day, at noon.
+        assert purchase.date.strftime("%Y-%m-%d %H:%M") == f"{day} 12:00"
+        assert purchase.source == "email"
+        sales_after = db.scalar(
+            select(func.count()).select_from(Sale).where(Sale.business_id == business_id)
+        )
+    assert sales_after == sales_before, "a corrected purchase must not also become a sale"
+    assert _oil_stock(client, workspace) == opening + 4
+
+    handled = client.get("/api/inbox").json()["rows"][0]
+    assert handled["status"] == "accepted"
+    assert handled["draft"]["suggestedType"] == "purchase"
+    assert handled["draft"]["partyName"] == "ABC Suppliers"
+    assert handled["draft"]["date"] == day
+
+
+def test_the_total_the_review_window_shows_is_the_total_recorded(
+    client, workspace, inbox_token, business_id
+):
+    """The window is not told a total; it works one out, from the lines, the
+    discount on the draft and the tax rate in `/api/input/status`: the
+    discount comes off first, then tax goes on. The same sum is done here and
+    held against what the server stored."""
+    status = client.get("/api/input/status").json()
+    parties = {p["id"]: p for p in status["parties"]}
+    assert parties[workspace["customerId"]]["type"] == "customer"
+    assert parties[workspace["supplierId"]]["type"] == "supplier"
+    product = {p["id"]: p for p in status["products"]}[workspace["productId"]]
+    assert (product["sellingPrice"], product["purchasePrice"]) == (140, 100)
+    assert status["currency"]
+
+    with SessionLocal() as db:
+        _deliver(
+            db,
+            _raw_email(f"orders+{inbox_token}@smartsme.local", "Order", "4 Cooking Oil"),
+        )
+    row = client.get("/api/inbox").json()["rows"][0]
+    accepted = client.post(
+        f"/api/inbox/{row['id']}/accept",
+        json={
+            **row["draft"],
+            "type": "sale",
+            "suggestedType": "sale",
+            "partyId": workspace["customerId"],
+            "partyName": "Anita Stores",
+            "items": [_oil(4, 140, workspace)],
+            "discountType": "percentage",
+            "discountValue": 10,
+        },
+    )
+    assert accepted.status_code == 200, accepted.text
+    invoice = accepted.json()["ok"].split()[1]
+
+    discounted = 4 * 140 - 56
+    tax = round2(discounted * status["taxRate"] / 100)
+    with SessionLocal() as db:
+        sale = db.scalars(
+            select(Sale).where(Sale.business_id == business_id, Sale.invoice_number == invoice)
+        ).one()
+        assert str(sale.party_id) == workspace["customerId"]
+        assert sale.subtotal == 560
+        assert sale.discount_amount == 56
+        assert sale.tax == tax
+        assert sale.total == round2(discounted + tax)
+
+
+def test_an_emailed_expense_can_be_reviewed_and_recorded(
+    client, workspace, inbox_token, business_id
+):
+    """All three kinds of document arrive by email. An expense has no lines,
+    and a review window that only knew about lines could show one but never
+    record it. For an expense it sends a category, an amount and a
+    description, and the server wants an amount, as the window does."""
+    with SessionLocal() as db:
+        _deliver(
+            db,
+            _raw_email(
+                f"orders+{inbox_token}@smartsme.local", "Bill", "paid electricity bill 3200"
+            ),
+        )
+    row = client.get("/api/inbox").json()["rows"][0]
+    assert row["draft"]["suggestedType"] == "expense"
+    assert row["draft"]["items"] == []
+    assert row["draft"]["amount"] == 3200
+
+    reviewed = {
+        **row["draft"],
+        "type": "expense",
+        "suggestedType": "expense",
+        "date": None,
+        "category": "Utilities",
+        "description": "Electricity bill, October",
+    }
+    refused = client.post(f"/api/inbox/{row['id']}/accept", json={**reviewed, "amount": 0})
+    assert refused.status_code == 400
+    assert client.get("/api/inbox").json()["rows"][0]["status"] == "pending"
+
+    accepted = client.post(f"/api/inbox/{row['id']}/accept", json={**reviewed, "amount": 3250})
+    assert accepted.status_code == 200, accepted.text
+
+    with SessionLocal() as db:
+        expense = db.scalars(
+            select(Expense)
+            .where(Expense.business_id == business_id)
+            .order_by(Expense.created_at.desc())
+        ).first()
+        assert expense.description == "Electricity bill, October"
+        assert expense.category == "Utilities"
+        assert expense.amount == 3250
+        assert expense.date.date() == datetime.now().date()
+    assert client.get("/api/inbox").json()["rows"][0]["status"] == "accepted"
 
 
 def test_a_message_cannot_be_accepted_twice(client, workspace, inbox_token):

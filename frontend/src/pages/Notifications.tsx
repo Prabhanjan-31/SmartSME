@@ -68,6 +68,7 @@ export function Notifications() {
       <PageHeader
         title="Notifications"
         description={`${data.unread} unread alert${data.unread === 1 ? "" : "s"}.`}
+        info="Alerts are raised by workflow rules: low stock, an unpaid sale, a flagged expense, and any rule you add yourself. The same alert is not raised again while an earlier one with the same title is still unread. The red number on the bell counts unread alerts."
       >
         {data.unread > 0 && (
           <Button

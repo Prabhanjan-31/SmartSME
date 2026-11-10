@@ -4,13 +4,21 @@ import { Button } from "./ui/button";
 import { Field, Input } from "./ui/input";
 import { PaymentModeFields } from "./PaymentModeFields";
 import { useMutation } from "@/lib/api";
-import { emptyPayment, paymentProblem, toPayload, type PaymentPayload } from "@/lib/payments";
-import { money, toDateInputValue } from "@/lib/utils";
+import {
+  emptyPayment,
+  paymentDateWindow,
+  paymentProblem,
+  toPayload,
+  type PaymentPayload,
+} from "@/lib/payments";
+import { formatDate, money, toDateInputValue } from "@/lib/utils";
 
 export function RecordPaymentButton({
   onSubmit,
   due,
   currency,
+  documentDate,
+  noun,
   label = "Record payment",
   variant = "outline",
   onDone,
@@ -19,6 +27,11 @@ export function RecordPaymentButton({
   onSubmit: (payment: PaymentPayload) => Promise<unknown>;
   due: number;
   currency: string;
+  /** The sale's or purchase's own date, as the API sent it. A payment can be
+   *  dated from that day up to today, and the picker is limited to match. */
+  documentDate: string;
+  /** What is being paid, for the wording: "before the sale itself". */
+  noun: "sale" | "purchase";
   label?: string;
   variant?: "outline" | "primary" | "ghost";
   onDone?: () => void;
@@ -29,6 +42,15 @@ export function RecordPaymentButton({
   const [how, setHow] = useState(emptyPayment());
   const { run, pending, error } = useMutation();
   const problem = paymentProblem(how);
+  const when = paymentDateWindow(date, documentDate, noun);
+  // A sale or purchase dated ahead of today (an order booked for next week)
+  // has no day it can be paid on yet; the message under the field says so.
+  const notYet = when.earliest > when.latest;
+  const dateHint = notYet
+    ? undefined
+    : when.earliest === when.latest
+      ? `This ${noun} is dated today, so the payment is too.`
+      : `Defaults to today. Back-date it if the money came earlier, as far back as ${formatDate(documentDate)}, the day of the ${noun}.`;
 
   function openDialog() {
     setAmount(due);
@@ -39,7 +61,7 @@ export function RecordPaymentButton({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (problem) return;
+    if (problem || when.problem) return;
     await run(
       () => onSubmit(toPayload(how, amount, date)),
       () => {
@@ -69,9 +91,18 @@ export function RecordPaymentButton({
               autoFocus
             />
           </Field>
-          <Field label="Paid on" hint="Defaults to today. Back-date it if the money came earlier.">
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Field label="Paid on" hint={dateHint}>
+            <Input
+              type="date"
+              value={date}
+              min={notYet ? undefined : when.earliest}
+              max={when.latest}
+              disabled={notYet}
+              onChange={(e) => setDate(e.target.value)}
+              aria-invalid={when.problem !== null}
+            />
           </Field>
+          {when.problem && <p className="text-sm text-destructive">{when.problem}</p>}
           <PaymentModeFields value={how} onChange={setHow} problem={problem} />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex justify-end gap-2">
@@ -83,7 +114,7 @@ export function RecordPaymentButton({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || !date || problem !== null}>
+            <Button type="submit" disabled={pending || problem !== null || when.problem !== null}>
               {pending ? "Saving…" : "Save payment"}
             </Button>
           </div>

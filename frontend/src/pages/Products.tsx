@@ -67,7 +67,11 @@ export function Products() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Products" description="Inventory, pricing and stock movements.">
+      <PageHeader
+        title="Products"
+        description="Inventory, pricing and stock movements."
+        info="Stock goes down when a sale is recorded and up when a purchase is. For anything else, such as damaged goods or a recount, use Adjust on the row of that product."
+      >
         <Can do={PERMISSIONS.catalogWrite}>
           <Button onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} /> New product
@@ -346,7 +350,10 @@ function ProductDialog({
               <Input type="number" min={0} step="1" value={form.stock} onChange={num("stock")} />
             </Field>
           )}
-          <Field label="Low-stock threshold">
+          <Field
+            label="Low-stock threshold"
+            info="When stock falls to this number or below, the product is listed under Needs attention on the Dashboard and, while the low-stock rule on the Workflow page is switched on, a Low stock alert is raised. At zero the alert says Out of stock."
+          >
             <Input
               type="number"
               min={0}

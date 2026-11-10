@@ -57,7 +57,11 @@ export function Expenses() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Expenses" description="Operating costs, categorised.">
+      <PageHeader
+        title="Expenses"
+        description="Operating costs, categorised."
+        info="Running costs that are not stock: rent, wages, electricity, transport. Goods bought to sell belong under Purchases. A workflow rule can flag an expense for a second look; to begin with, anything above 10,000 is flagged."
+      >
         <Can do={PERMISSIONS.txnWrite}>
           <Button onClick={() => setOpen(true)}>
             <Icon name="plus" size={16} /> New expense

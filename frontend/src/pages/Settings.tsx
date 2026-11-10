@@ -117,7 +117,10 @@ export function Settings() {
                 onChange={text("taxRate")}
               />
             </Field>
-            <Field label="Invoice prefix">
+            <Field
+              label="Invoice prefix"
+              info="Invoice numbers are this prefix followed by a running number, such as INV-0056."
+            >
               <Input
                 value={form.invoicePrefix}
                 onChange={text("invoicePrefix")}
@@ -128,6 +131,7 @@ export function Settings() {
           <Field
             label="Payment deadline (days)"
             hint="How long customers get to pay an invoice, and you get to pay a bill, unless a party has its own. Any one document can be extended from its detail view."
+            info="Every new invoice and bill falls due this many days after its own date. It starts at 30. To give one customer or supplier a different number, edit them under Parties. To move the deadline on a single invoice or bill, open it and click its Due by date. Changing this number does not move deadlines that are already set."
           >
             <Input
               type="number"

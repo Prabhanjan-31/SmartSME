@@ -30,5 +30,11 @@ Interactive docs at **<http://localhost:8000/docs>**. Summary:
 Requests use camelCase JSON to match the React code; the database stays
 snake_case. Domain validation errors come back as `400 {"detail": "..."}`.
 
+`POST {id}/payment` takes an optional `date` (`yyyy-mm-dd`), the day the money
+moved; left out, it is now. It is refused with a 400 when it is before the
+sale or purchase, after today, or when the document itself is dated ahead of
+today. The comparison is by calendar day, so the document's own day is always
+allowed. See [Which day a payment may carry](features.md#which-day-a-payment-may-carry).
+
 ---
 

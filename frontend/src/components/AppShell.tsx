@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn, initials } from "@/lib/utils";
-import { api, useApi } from "@/lib/api";
+import { api, onDataChanged, useApi } from "@/lib/api";
 import { Icon, type IconName } from "./Icon";
 import { BrandLockup, BrandMark } from "./Brand";
 import { ThemeToggle } from "./ThemeToggle";
@@ -74,9 +74,9 @@ export function AppShell({
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [dragging, setDragging] = useState(false);
 
-  // The badge refreshes whenever the route changes, which is when new alerts
-  // are most likely to have been raised by a write.
-  const { data: unreadData } = useApi<{ unread: number }>(
+  // The badge refreshes whenever the route changes, and after every write
+  // (see the effect below), which is when alerts are raised or read.
+  const { data: unreadData, reload: reloadUnread } = useApi<{ unread: number }>(
     `/notifications/unread-count?at=${encodeURIComponent(location.pathname)}`,
   );
   const unread = unreadData?.unread ?? 0;
@@ -104,6 +104,18 @@ export function AppShell({
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [reloadInbox]);
+
+  // Any write can move either count: marking an alert read, a sale that trips
+  // a low-stock rule, accepting an order. Without this the bell kept its old
+  // number until the next page change.
+  useEffect(
+    () =>
+      onDataChanged(() => {
+        reloadUnread();
+        reloadInbox();
+      }),
+    [reloadUnread, reloadInbox],
+  );
 
   // The tab title too: the app is usually one of several tabs open, and a
   // count in the title is visible without switching to it.

@@ -82,6 +82,8 @@ export function SaleInvoice() {
             <RecordPaymentButton
               due={sale.due}
               currency={cur}
+              documentDate={sale.date}
+              noun="sale"
               variant="primary"
               onSubmit={(payment) => api.post(`/sales/${sale.id}/payment`, payment)}
               onDone={reload}

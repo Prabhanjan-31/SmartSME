@@ -90,8 +90,8 @@ SYSTEM = (
 
 def _prompt(text: str, today_iso: str) -> str:
     return f"""Extract one business event from the note and return ONLY a single minified JSON object with exactly these keys:
-- eventType: one of "SALE_CREATED" (sold/sale), "PURCHASE_CREATED" (bought/purchased from a supplier), "ORDER_CREATED" (a customer wants/needs something later), "EXPENSE_ADDED" (rent, salary, utilities, fuel, etc.).
-- party: the customer or supplier name, or null.
+- eventType: one of "SALE_CREATED" (goods went out of this shop to a customer), "PURCHASE_CREATED" (goods came into this shop from a supplier), "ORDER_CREATED" (a customer wants/needs something later), "EXPENSE_ADDED" (rent, salary, utilities, fuel, etc.).
+- party: the customer or supplier name, or null. Never "us", "me" or "our shop": that is the shop itself.
 - lineItems: an array of every product the note mentions, each {{ "product": string (singular, no unit words like "bags"/"packets"), "quantity": number, "english": string or null }}. "english" is the plain English name a shop's product list would use for that item, lowercase and singular (e.g. "rice" for "चावल", "jaggery" for "ಬೆಲ್ಲ", "gram flour" for "besan"); use null when "product" is already English or you do not know the English name. A note listing three things has three entries. Use an empty array when no product is named.
 - amount: total money value in rupees if stated, else null.
 - category: for EXPENSE_ADDED, exactly one of: {PROMPT_LIST}. Choose the closest; do not invent another word and do not answer in any language but English. null for everything else.
@@ -99,6 +99,7 @@ def _prompt(text: str, today_iso: str) -> str:
 - discountType: "percentage" if a percentage discount is mentioned (e.g. "10% off", "discount of 10%"), "amount" if a flat money discount is mentioned (e.g. "discount of 300 rupees"), otherwise "none".
 - discountValue: the numeric discount, the percent number for "percentage" or the rupee figure for "amount"; 0 when discountType is "none".
 - date: the date the transaction happened as "YYYY-MM-DD" if the note states one (e.g. "on 20th August 2026", "yesterday", "3 Sept"); otherwise null. Today is {today_iso}, resolve relative words against it, and assume a bare day+month is the most recent past occurrence.
+Point of view: the shopkeeper wrote the note about their own shop, so decide eventType by which way the goods moved, not by the verb. "Anita Stores purchased 5 rice bags from us" and "Anita Stores bought 5 rice bags" are SALE_CREATED with party "Anita Stores", because a named customer did the buying. "bought 5 rice bags from Anita Stores", "we purchased 5 rice bags" and "Kumar Traders sold us 10 bags" are PURCHASE_CREATED. Hindi "humse"/"हमसे" and Kannada "namminda"/"ನಮ್ಮಿಂದ" mean "from us".
 Language: the note may be English, Hindi or Kannada, in Devanagari, Kannada script or Latin letters, or a mix. Understand all of them. Keep `party` and `product` in the script the note used - do not translate or transliterate them, because they are matched against a catalogue that may itself be in that script. Common verbs: becha/bech diya/ಮಾರಿದೆ/maride mean sold; kharida/ಖರೀದಿಸಿದೆ/kharidiside mean bought; kharch/ಖರ್ಚು/kharchu means an expense; chahiye/ಬೇಕು/beku means a customer wants something. "ko"/"ge"/"ಗೆ" mark the recipient and "se"/"inda"/"ಇಂದ" the supplier, and both come AFTER the name. Hindi "kal" is yesterday for something already done and tomorrow for something wanted.
 Use null where a value is unknown. No extra keys, no commentary.
 
@@ -117,6 +118,7 @@ def parse_command(text: str) -> ParsedCommand:
             parsed = extract_json(raw)
             if parsed and parsed.get("eventType"):
                 out = _normalize(parsed)
+                _apply_point_of_view(out, text)
                 out.engine = provider.label
                 return out
         except Exception as err:
@@ -339,6 +341,10 @@ _ITEM_RUN = re.compile(
 #: Words that join two items rather than belong to either.
 _JOINERS = re.compile(r"^(?:and|aur|mattu|plus|with|&|,)\s+|\s+(?:and|aur|mattu|plus|&)$", re.I)
 
+#: "on 3 Nov" has the shape of an item, a number and then a word. It is the
+#: date, which `parse_date_phrase` has already read, not three of something.
+_MONTH_NOT_ITEM = re.compile(rf"^(?:{_MONTHS})[a-z]*\.?(?:,?\s*\d{{4}})?$", re.IGNORECASE)
+
 
 def _read_items(text: str) -> list[ParsedLine]:
     """Every "<quantity> <product>" the note contains, in order.
@@ -355,7 +361,7 @@ def _read_items(text: str) -> list[ParsedLine]:
     for match in _ITEM_RUN.finditer(text):
         words = _JOINERS.sub("", match[2].strip(" ,.;:-")).strip()
         cleaned = re.sub(r"\s+", " ", UNIT_WORDS.sub(" ", words)).strip(" ,.;:-")
-        if not cleaned:
+        if not cleaned or _MONTH_NOT_ITEM.match(cleaned):
             continue
         try:
             quantity = float(match[1].replace(",", ""))
@@ -370,6 +376,134 @@ def _title_case(s: str) -> str:
     return " ".join(
         w if i and w in _MINOR_WORDS else w[0].upper() + w[1:] for i, w in enumerate(words)
     ).strip()
+
+
+# ---------------------------------------------------------------------------
+# Point of view
+#
+# A note is written by the shopkeeper, about their own shop. "Anita Stores
+# purchased 5 rice bags from us" has the word "purchased" in it and is a sale:
+# the goods left this shop. Reading sale-versus-purchase off the verb alone
+# gets every note written from the other side of the counter backwards, and
+# then reads "Us" as the name of the supplier.
+# ---------------------------------------------------------------------------
+_US = r"(?:us|me|(?:our|my)\s+(?:shop|store))"
+
+#: What may follow "from us" for it to mean this shop: the end of the note,
+#: punctuation, a number, or a word that starts another clause. Anything else
+#: is left alone as a name, so a customer called "US Foods" is not us.
+_US_END = (
+    rf"(?=\s+(?:{STOP_WORDS}|and|but|with|in|by|this|last|paid|cash|upi|credit)\b"
+    r"|\s+\d|\s*[.,;!?₹]|\s*$)"
+)
+_FROM_US = re.compile(rf"\bfrom\s+{_US}{_US_END}", re.IGNORECASE)
+_TO_US = re.compile(rf"\bto\s+{_US}{_US_END}", re.IGNORECASE)
+_SUPPLY_VERBS = r"sold|sells?|gave|gives?|supplied|supplies|delivered|sent"
+#: "Kumar Traders sold us 10 bags".
+_VERB_US = re.compile(rf"\b({_SUPPLY_VERBS})\s+(?:us|me){_US_END}", re.IGNORECASE)
+_SUPPLY_VERB = re.compile(rf"\b(?:{_SUPPLY_VERBS})\b", re.IGNORECASE)
+
+
+def point_of_view(text: str) -> str | None:
+    """Which way the goods moved, when the note says so about the shop itself.
+
+    "sale" for goods that left it ("... from us"), "purchase" for goods that
+    came to it ("... sold us", "delivered ... to us"), None when the note does
+    not mention the shop. Takes a note already through `lang.normalize`.
+    """
+    if _FROM_US.search(text):
+        return "sale"
+    if _VERB_US.search(text) or (_TO_US.search(text) and _SUPPLY_VERB.search(text)):
+        return "purchase"
+    return None
+
+
+def _without_us(text: str) -> str:
+    """The note with the shop's own mentions removed, so "us" is never read as
+    the party and never ends up inside a product name."""
+    text = _VERB_US.sub(lambda m: m[1], text)
+    text = _TO_US.sub(" ", _FROM_US.sub(" ", text))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+_BUY_VERBS = r"bought|buys?|purchase[ds]?"
+_SUBJECT_VERBS = (
+    rf"{_BUY_VERBS}|took|takes?|taken|got|gets?|collected|received|{_SUPPLY_VERBS}"
+    r"|ordered|orders|wants|needs|requested|requires"
+)
+#: Words allowed between the name and its verb: "Anita has bought", "Anita
+#: wants to buy".
+_AUXILIARIES = (
+    r"(?:(?:has|have|had|just|also|again|will|wants?\s+to|needs?\s+to|would\s+like\s+to)\s+)*"
+)
+#: A name at the head of the note, then what shows it is the one acting: the
+#: verb ("Anita Stores bought ..."), Hindi's agent marker ("Anita ne ..."), or
+#: the shop itself ("Anita from us ...", which is how "Anita humse ..." arrives).
+#: No digits: a name ends where a quantity starts.
+_SUBJECT = re.compile(
+    rf"^([A-Za-z{DEVANAGARI}{KANNADA}][A-Za-z&.'\s{DEVANAGARI}{KANNADA}]*?)\s+"
+    rf"(?:(?:ne|ने)(?![\w{DEVANAGARI}{KANNADA}])"
+    rf"|{_AUXILIARIES}(?:{_SUBJECT_VERBS})\b"
+    rf"|(?:from|to)\s+{_US}{_US_END})",
+    re.IGNORECASE,
+)
+_LEADING_DATE = re.compile(
+    r"^(?:(?:day before yesterday|yesterday|today|tomorrow)\s*,?\s+)+", re.IGNORECASE
+)
+
+#: The shopkeeper, in the three languages. A note that opens with one of these
+#: is about what the shop did, which is how every verb was already being read.
+_FIRST_PERSON = {
+    "i", "we", "me", "us", "my", "our", "ive", "i've", "we've",
+    "maine", "mene", "main", "mai", "humne", "hamne", "hum",
+    "मैंने", "मैने", "मैं", "हमने", "हम",
+    "naanu", "nanu", "naavu", "navu", "ನಾನು", "ನಾವು",
+}  # fmt: skip
+#: Someone bought, but nobody in particular: a sale with no party on it.
+_NOBODY = {
+    "customer", "a customer", "one customer", "the customer", "client", "a client",
+    "someone", "somebody", "walk in", "walk-in", "walkin", "a walk in customer",
+}  # fmt: skip
+_NOT_A_SUBJECT = re.compile(
+    rf"^(?:{STOP_WORDS}|{_SUBJECT_VERBS}|paid|restock(?:ed)?)$", re.IGNORECASE
+)
+
+
+def _subject(text: str) -> tuple[bool, str | None]:
+    """Who the note says did it, when that is not the shopkeeper.
+
+    Returns (someone else acted, their name). The name is None for "a customer
+    bought ...", where there is a buyer but nobody to put on the invoice.
+    """
+    match = _SUBJECT.match(_LEADING_DATE.sub("", text.strip()))
+    if not match:
+        return False, None
+    name = re.sub(r"\s+", " ", match[1]).strip(" .,'&")
+    if name.lower() in _NOBODY:
+        return True, None
+    words = name.lower().split()
+    if not words or any(
+        w in _FIRST_PERSON or _NOT_A_SUBJECT.match(w) or UNIT_WORDS.fullmatch(w) for w in words
+    ):
+        return False, None
+    return True, name
+
+
+def _apply_point_of_view(out: ParsedCommand, text: str) -> None:
+    """Hold a model's answer to what the note says about the shop itself.
+
+    A model usually gets "purchased ... from us" right, and the prompt asks it
+    to, but "usually" is not good enough to leave a sale filed as a purchase.
+    Only the explicit wording is enforced; everything else stays the model's
+    call.
+    """
+    shaped = normalize(text)
+    side = point_of_view(shaped.lower())
+    if side and out.eventType in ("SALE_CREATED", "PURCHASE_CREATED"):
+        out.eventType = "SALE_CREATED" if side == "sale" else "PURCHASE_CREATED"
+    if out.party and re.fullmatch(rf"(?:the\s+)?{_US}", out.party.strip(), re.IGNORECASE):
+        acted, name = _subject(shaped)
+        out.party = _title_case(name) if acted and name else None
 
 
 def heuristic_parse(text: str) -> ParsedCommand:
@@ -396,13 +530,25 @@ def heuristic_parse(text: str) -> ParsedCommand:
     discount_type, discount_value = parse_discount(lower)
     date = parse_date_phrase(text)
 
+    # Who is on which side of the counter, before any verb is trusted.
+    side = point_of_view(lower)
+    acted, subject = _subject(text)
+    #: The note with "from us" and the like taken out, for finding the party
+    #: and the items: "us" is neither.
+    plain = _without_us(text)
+    names_a_source = bool(re.search(r"\bfrom\b", plain, re.IGNORECASE))
+    buy_word = re.search(rf"\b(?:{_BUY_VERBS})\b", lower)
+    wants = re.search(r"\b(order(?:ed)?|wants?|need[s]?|requires?|requested)\b", lower)
+    #: The other side did the buying, so this shop did the selling: the note
+    #: says "from us", or it opens with a name and gives no supplier.
+    they_bought = bool(buy_word) and (side == "sale" or (acted and not names_a_source))
+
     event_type: EventType = "SALE_CREATED"
-    if (
-        re.search(r"\b(bought|buy|purchase[ds]?|received|restock(?:ed)?)\b", lower)
-        and re.search(r"\bfrom\b", lower)
-    ) or re.search(r"\b(bought|buy|purchase[ds]?)\b", lower):
+    if they_bought:
+        event_type = "ORDER_CREATED" if wants else "SALE_CREATED"
+    elif buy_word or (re.search(r"\b(received|restock(?:ed)?)\b", lower) and names_a_source):
         event_type = "PURCHASE_CREATED"
-    elif re.search(r"\b(order(?:ed)?|wants?|need[s]?|requires?|requested)\b", lower):
+    elif wants:
         event_type = "ORDER_CREATED"
     elif (
         # Strong expense words classify as an expense even with "to <payee>".
@@ -413,8 +559,9 @@ def heuristic_parse(text: str) -> ParsedCommand:
         or (re.search(r"\bpaid\b", lower) and not re.search(r"\bto\b", lower))
     ):
         event_type = "EXPENSE_ADDED"
-    elif re.search(r"\b(sold|sell|sale)\b", lower):
-        event_type = "SALE_CREATED"
+    elif side == "purchase":
+        # "Kumar Traders sold us 10 bags": a selling word, and a purchase.
+        event_type = "PURCHASE_CREATED"
 
     qty_match = re.search(r"\b(\d[\d,]*(?:\.\d+)?)\b", text)
     first_number = float(qty_match[1].replace(",", "")) if qty_match else None
@@ -437,10 +584,14 @@ def heuristic_parse(text: str) -> ParsedCommand:
     party_match = re.search(
         rf"\b(?:to|from|for)\s+(?!\d)([A-Za-z0-9&.'\s{DEVANAGARI}{KANNADA}]+?)"
         rf"(?=\s+(?:{STOP_WORDS})\b|\s+\d|\s*[.,!?₹]|$)",
-        text,
+        plain,
         re.IGNORECASE,
     )
     party = _title_case(party_match[1].strip()) if party_match else None
+    if acted and (side or they_bought):
+        # The name at the head of the note is the other party, and beats a
+        # stray "for cash" further along. It may be nobody: "a customer bought".
+        party = _title_case(subject) if subject else None
 
     if event_type == "EXPENSE_ADDED":
         amount = amount if amount is not None else first_number
@@ -464,6 +615,8 @@ def heuristic_parse(text: str) -> ParsedCommand:
             date=date,
         )
 
+    # From the note as written, not `plain`: "from" and "to" are what end an
+    # item, so "5 rice bags from us, paid 500" needs them left in place.
     items = _read_items(text)
 
     return ParsedCommand(

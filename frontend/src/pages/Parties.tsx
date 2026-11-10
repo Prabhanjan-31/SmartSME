@@ -87,7 +87,11 @@ export function Parties() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Parties" description="Customers and suppliers, with outstanding balances.">
+      <PageHeader
+        title="Parties"
+        description="Customers and suppliers, with outstanding balances."
+        info="Customers buy from you and suppliers sell to you. The balance beside each one is what is still owed: to you by a customer, or by you to a supplier. Each party can have its own payment deadline, set when you edit them."
+      >
         <Can do={PERMISSIONS.catalogWrite}>
           <Button onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} /> New party
@@ -507,6 +511,7 @@ function PartyDialog({
         <Field
           label="Payment deadline (days)"
           hint="How long they get to pay each invoice or bill. Leave blank for the business default from Settings."
+          info="New invoices and bills for this party fall due this many days after their date. Left blank, they get the default from Settings, which starts at 30. Use a bigger number for someone you give longer, or 0 for payment on the day. Documents already recorded keep the deadline they have."
         >
           <Input
             type="number"

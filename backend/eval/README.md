@@ -40,6 +40,10 @@ cd backend
 .venv\Scripts\python -m eval --engines heuristic,google       # pick engines
 .venv\Scripts\python -m eval --slips-only --engines vision,ocrspace
 .venv\Scripts\python -m eval --limit 10 --delay 0             # fast smoke run
+
+# the unknown-word set, scored against its own catalogue
+.venv\Scripts\python -m eval --notes-only --notes-file notes_oov.jsonl `
+    --catalogue-file catalogue_oov.json --engines heuristic,google --delay 3.2 --name oov
 ```
 
 `--delay` is the pause between provider calls. **Do not set it to zero for a
@@ -75,12 +79,16 @@ the labels or the scorer, not the parser.
 | `data/slips.jsonl` | 12 photographs of real handwritten order slips | Real inputs. Labels transcribed once, by one person. |
 | `data/notes.jsonl` | 70 typed notes across five language variants | **Synthetic** - written by the same author as the parser. |
 | `data/catalogue.json` | The shop everything is scored against | Fixed, so runs are comparable. |
+| `data/notes_oov.jsonl` | 24 typed notes built to break the parser: verbs and grammar the normaliser was not written for, and products the lexicon has never heard of | **Synthetic**, and adversarial on purpose. It shows where the system breaks, not how often. |
+| `data/catalogue_oov.json` | The same shop plus the products those notes name | Used only with `notes_oov.jsonl`. |
 
 The synthetic set is honest about being the weak half. The first fifty notes
 scored **100% on the heuristic parser**, which says more about who wrote them
 than about the parser; twenty messier ones were added afterwards and the score
-dropped to 85.7%. Even so, notes written by the person who wrote the parser
-cannot measure how the system behaves for a stranger.
+dropped to 85.7%. It is 87.1% now, after the parser learned to read a second
+item on the same line ("ramesh ko 2 chai aur 3 biscuit becha"). Even so, notes
+written by the person who wrote the parser cannot measure how the system
+behaves for a stranger.
 
 **Before any of this is published**, that set needs replacing with notes
 collected from actual shopkeepers, labelled by two people, with the agreement
@@ -88,23 +96,49 @@ between them reported.
 
 ## Results, as of the last run
 
-`results/notes.md` and `results/slips.md` hold the generated tables. The
-headline numbers:
+`results/` holds the generated tables: `slips.md` for the photographs,
+`notes_after.md` and `notes_after_gemini.md` for the seventy notes,
+`oov_after.md` and `oov_after_gemini.md` for the unknown-word set. `notes.md`
+and `oov.md` are the earlier runs they are compared against. The headline
+numbers:
 
 ### Typed notes (n=70, synthetic - see the caveat above)
 
 | Engine | Exact | party F1 | items F1 |
 |---|---:|---:|---:|
-| heuristic (offline regex) | 85.7% | 94.8 | 91.9 |
-| Gemini 3.5 Flash Lite | **97.1%** | 100.0 | 96.8 |
+| heuristic (offline regex) | 87.1% | 94.8 | 93.7 |
+| Gemini 3.5 Flash Lite | **100.0%** | 100.0 | 100.0 |
 
 The gap is concentrated exactly where you would expect: on the messier
 English and Hinglish notes (no verb, no capitals, typos, two items in a line)
-the offline parser drops to 66.7% and 77.8% while the model holds 94.4%. On
+the offline parser drops to 66.7% and 83.3% while the model holds 100%. On
 the two native scripts both reach 100%: the model reads them directly, and the
 offline parser gets there because the normaliser in `app/ai/lang.py` rewrites
 the note into English word order before `heuristic_parse()` runs. The model
 path never calls the normaliser.
+
+Run on 2026-11-10. In September the same notes scored 85.7% and 97.1%; the
+difference is two notes with two items on one line, where the second item used
+to be lost. Seventy out of seventy is the ceiling of this set, not of the
+model, which is the reason for the next one.
+
+On the first pass the provider answered 503 for eight notes and the pipeline
+fell back to the offline parser, exactly the case the warning above exists
+for. Those eight were run again on their own until the model answered, so the
+row is the model's own answer for every note.
+
+### Notes with words outside the lexicon (n=24, synthetic and adversarial)
+
+| Engine | Exact | party F1 | items F1 |
+|---|---:|---:|---:|
+| heuristic (offline regex) | 29.2% | 69.8 | 62.5 |
+| Gemini 3.5 Flash Lite | **83.3%** | 91.7 | 91.7 |
+
+Before the qualifier rule and the model's English item name
+(`docs/smart-input.md`, "Words the lexicon does not know") these were 20.8%
+and about 46%. The offline parser barely moves because it cannot name a
+product it has never seen; the model's four remaining misses, and what the
+numbers do and do not show, are in `docs/evaluation.md`.
 
 ### Handwritten order slips (n=12, real photographs)
 

@@ -45,6 +45,7 @@ export function Team() {
       <PageHeader
         title="Team"
         description="Who can sign in to this business, and what they are allowed to do."
+        info="Invite someone to give them their own sign-in to this business. A business owner can do everything. An employee can record sales, purchases, expenses and payments, but cannot cancel or delete anything, edit products or parties, or change settings."
       >
         <Button onClick={() => setOpen(true)}>
           <Icon name="plus" size={16} />
@@ -107,6 +108,7 @@ export function Team() {
           <SectionCard
             title="Pending invitations"
             description="Links that have been handed out but not used yet."
+            info="An invitation is a link you pass on yourself, by message or email. It is shown only once and works for 7 days. Revoke it here if it went to the wrong person."
           >
             {data.invites.length === 0 ? (
               <EmptyState

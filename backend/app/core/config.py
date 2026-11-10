@@ -1,7 +1,12 @@
+import logging
+import os
+import time
 from functools import lru_cache
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+log = logging.getLogger("smartsme.config")
 
 
 class Settings(BaseSettings):
@@ -30,6 +35,15 @@ class Settings(BaseSettings):
     #: one connection, so this is kept in step with the pool ceiling; making it
     #: larger only queues work deeper inside the process.
     server_threads: int = 60
+
+    # ---- Clock --------------------------------------------------------------
+    #: The time zone the shop keeps its books in. Every date in the app is the
+    #: server's local time, and a hosted server runs in UTC: for a shop in
+    #: India that puts "today" five and a half hours behind the shopkeeper's
+    #: own, so a payment taken just after midnight would count as dated
+    #: tomorrow. Leave empty to use the machine's own clock. A `TZ` variable
+    #: already in the environment wins over this.
+    app_timezone: str = "Asia/Kolkata"
 
     # ---- Auth ---------------------------------------------------------------
     auth_secret: str = "smartsme-dev-insecure-secret-change-me"
@@ -133,4 +147,39 @@ def get_settings() -> Settings:
     return Settings()
 
 
+def _zone_exists(name: str) -> bool:
+    """Is this a time zone the machine knows? An unknown name is not an error
+    to the C library: it quietly means UTC, which is the problem being fixed."""
+    from zoneinfo import ZoneInfo
+
+    try:
+        ZoneInfo(name)
+    except Exception:
+        return False
+    return True
+
+
+def apply_timezone(name: str) -> str | None:
+    """Make the process clock the shop's clock. Returns the zone now in force,
+    or None when the machine's own clock was left alone.
+
+    One clock for the whole process, so that "today", an invoice's date and
+    the day a payment is checked against can never disagree with each other.
+    Windows has no `tzset`; there the machine's zone is used, which on a
+    developer's own computer is already the right one.
+    """
+    if os.environ.get("TZ"):
+        return os.environ["TZ"]
+    name = (name or "").strip()
+    if not name or not hasattr(time, "tzset"):
+        return None
+    if not _zone_exists(name):
+        log.warning("APP_TIMEZONE=%s is not a known time zone; using the machine clock.", name)
+        return None
+    os.environ["TZ"] = name
+    time.tzset()
+    return name
+
+
 settings = get_settings()
+apply_timezone(settings.app_timezone)

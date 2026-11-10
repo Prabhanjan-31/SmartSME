@@ -5,19 +5,24 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Field, Input } from "@/components/ui/input";
+import { Field, Input, Select } from "@/components/ui/input";
 import { Pagination, type PageInfo } from "@/components/ui/pagination";
 import { Icon } from "@/components/Icon";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { TotalsSummary } from "@/components/TotalsSummary";
 import { Can, PERMISSIONS, useCan } from "@/lib/session";
-import { cn, timeAgo } from "@/lib/utils";
+import {
+  acceptPayload,
+  documentTotals,
+  repriceLines,
+  type DiscountType,
+  type DraftLine,
+  type DraftType,
+  type PricedProduct,
+} from "@/lib/draft";
+import { cn, formatDateTime, timeAgo, toDateInputValue } from "@/lib/utils";
 
-interface DraftItem {
-  productId: string | null;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-}
+type DraftItem = DraftLine;
 
 interface Draft {
   suggestedType: string;
@@ -28,6 +33,20 @@ interface Draft {
   category: string | null;
   date: string | null;
   engine: string;
+  discountType?: DiscountType;
+  discountValue?: number;
+  /** The message as the parser was given it. */
+  note?: string;
+}
+
+/** What a review needs beyond the message itself: who the parties are, what
+ *  things cost, and the tax rate a total depends on. The Smart Input confirm
+ *  screen reads the same endpoint for the same reason. */
+interface Catalogue {
+  parties: { id: string; name: string; type: string }[];
+  products: PricedProduct[];
+  taxRate: number;
+  currency: string;
 }
 
 interface InboxRow {
@@ -104,6 +123,7 @@ export function Inbox() {
       <PageHeader
         title="Inbox"
         description="Orders that arrived by email or Telegram. Nothing is recorded until you confirm it."
+        info="Orders that customers send to your Telegram bot or your orders email address wait here. Review one to check what was understood, then record it as a sale, or dismiss it. Set up channels shows the email address to share and how to link a Telegram chat."
       >
         <Can do={PERMISSIONS.txnWrite}>
           <Button
@@ -307,26 +327,164 @@ function ReviewModal({
   onClose: () => void;
   onDone: () => void;
 }) {
-  const { run, pending, error } = useMutation();
-  const [items, setItems] = useState<DraftItem[]>([]);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  // Asked for each time a message is opened, so a customer added a minute ago
+  // is in the list. The last answer stays on screen while the new one loads.
+  const { data: catalogue, error } = useApi<Catalogue>(row ? "/input/status" : null);
+  const expense = row?.draft?.suggestedType === "expense";
 
-  if (row && loadedFor !== row.id) {
-    setLoadedFor(row.id);
-    setItems(row.draft?.items?.length ? row.draft.items : []);
+  return (
+    <Modal
+      open={row !== null}
+      onClose={onClose}
+      title={expense ? "Review this expense" : "Review this order"}
+      description={
+        row
+          ? `From ${row.sender} via ${row.channel} · received ${formatDateTime(row.receivedAt)}`
+          : undefined
+      }
+    >
+      {row && (
+        // No padding of its own: the modal already pads its body, and a second
+        // layer left a phone too little room for the item names.
+        <div className="flex flex-col gap-4">
+          <Card className="p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              What they wrote
+            </p>
+            <p className="mt-1 whitespace-pre-wrap text-sm">{row.body || "(empty)"}</p>
+          </Card>
+
+          {catalogue ? (
+            // Keyed by message, and mounted only while one is open: every
+            // review starts from that message's draft, never from the edits
+            // somebody made to the last one and then cancelled.
+            <ReviewForm
+              key={row.id}
+              row={row}
+              catalogue={catalogue}
+              onClose={onClose}
+              onDone={onDone}
+            />
+          ) : (
+            // Nothing is recorded blind. Without the parties and the tax rate
+            // the window cannot say who the order is for or what it comes to.
+            <>
+              {error ? (
+                <p className="text-sm text-destructive">{error}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              )}
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function draftType(value: string | undefined): DraftType {
+  return value === "purchase" || value === "expense" ? value : "sale";
+}
+
+/** The day a draft names, when it names one a date field can hold. */
+function statedDay(value: string | null | undefined): string | null {
+  return value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
+}
+
+/** Who, when and how much, for one message, all of it correctable. */
+function ReviewForm({
+  row,
+  catalogue,
+  onClose,
+  onDone,
+}: {
+  row: InboxRow;
+  catalogue: Catalogue;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const draft = row.draft;
+  const { run, pending, error } = useMutation();
+  const today = toDateInputValue();
+  const [type, setType] = useState<DraftType>(draftType(draft?.suggestedType));
+  const [date, setDate] = useState(statedDay(draft?.date) ?? today);
+  const [partyId, setPartyId] = useState(draft?.partyId ?? "");
+  const [items, setItems] = useState<DraftItem[]>(draft?.items ?? []);
+  const [discountType, setDiscountType] = useState<DiscountType>(draft?.discountType ?? "none");
+  const [category, setCategory] = useState(draft?.category || "General");
+  const [amount, setAmount] = useState(draft?.amount ?? 0);
+  // One line, as the field shows it: a text input drops line breaks anyway.
+  const [description, setDescription] = useState(
+    (draft?.note || row.body).replace(/\s+/g, " ").trim(),
+  );
+
+  const partyList = catalogue.parties.filter(
+    (p) => p.type === (type === "purchase" ? "supplier" : "customer"),
+  );
+  // A party that is not in the list for this direction is not selected: one
+  // deleted since the message arrived, or a customer on a draft that has just
+  // been flipped to a purchase.
+  const party = partyList.find((p) => p.id === partyId) ?? null;
+  // The message named somebody the parser could not find among the parties.
+  const unknownName = !draft?.partyId && !party ? draft?.partyName : null;
+
+  // A discount belongs to a sale, the same rule Smart Input follows.
+  const discount = type === "sale" ? discountType : "none";
+  const discountValue = draft?.discountValue ?? 0;
+  const totals = documentTotals(items, catalogue.taxRate, discount, discountValue);
+
+  const ready =
+    type === "expense"
+      ? amount > 0 && description.trim() !== ""
+      : items.some((i) => i.description.trim() !== "" && i.quantity > 0) && !totals.overDiscount;
+
+  // Says where the day on screen came from, and nothing once it is the
+  // reviewer's own choice.
+  const dateHint =
+    date === ""
+      ? "Left empty, this is recorded as today."
+      : date === statedDay(draft?.date)
+        ? "Taken from the message."
+        : date === today
+          ? "Today, unless you change it."
+          : undefined;
+
+  function changeType(next: DraftType) {
+    setItems((rows) => repriceLines(rows, catalogue.products, type, next));
+    setType(next);
+  }
+
+  function patch(index: number, changes: Partial<DraftItem>) {
+    setItems((rows) => rows.map((r, i) => (i === index ? { ...r, ...changes } : r)));
   }
 
   async function record() {
-    if (!row) return;
     await run(
-      // `type` explicitly: the draft names it `suggestedType`, and the publish
-      // path defaults to "sale" when it cannot find one.
       () =>
-        api.post(`/inbox/${row.id}/accept`, {
-          ...row.draft,
-          type: row.draft?.suggestedType ?? "sale",
-          items,
-        }),
+        api.post(
+          `/inbox/${row.id}/accept`,
+          acceptPayload(
+            draft,
+            {
+              type,
+              date,
+              partyId: party?.id ?? null,
+              partyName: party?.name ?? null,
+              items,
+              discountType,
+              discountValue,
+              category,
+              amount,
+              description,
+            },
+            today,
+          ),
+        ),
       () => {
         onDone();
         onClose();
@@ -334,70 +492,140 @@ function ReviewModal({
     );
   }
 
-  function patch(index: number, changes: Partial<DraftItem>) {
-    setItems((rows) => rows.map((r, i) => (i === index ? { ...r, ...changes } : r)));
-  }
-
   return (
-    <Modal
-      open={row !== null}
-      onClose={onClose}
-      title="Review this order"
-      description={row ? `From ${row.sender} via ${row.channel}` : undefined}
-    >
-      <div className="flex flex-col gap-4 p-5">
-        {row && (
-          <Card className="p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              What they wrote
-            </p>
-            <p className="mt-1 whitespace-pre-wrap text-sm">{row.body || "(empty)"}</p>
-          </Card>
-        )}
-
-        <div className="flex flex-col gap-3">
-          {items.map((item, index) => (
-            <div key={index} className="grid grid-cols-[1fr_5rem_6rem] gap-2">
-              <Field label={index === 0 ? "Item" : undefined}>
-                <Input
-                  value={item.description}
-                  onChange={(e) => patch(index, { description: e.target.value })}
-                />
-              </Field>
-              <Field label={index === 0 ? "Qty" : undefined}>
-                <Input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) => patch(index, { quantity: Number(e.target.value) })}
-                />
-              </Field>
-              <Field label={index === 0 ? "Price" : undefined}>
-                <Input
-                  type="number"
-                  value={item.unitPrice}
-                  onChange={(e) => patch(index, { unitPrice: Number(e.target.value) })}
-                />
-              </Field>
-            </div>
-          ))}
-          {items.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Nothing was extracted from this message. Dismiss it, or record the order by hand.
-            </p>
-          )}
-        </div>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            Cancel
-          </Button>
-          <Button onClick={record} disabled={pending || items.length === 0}>
-            {pending ? "Recording…" : "Record it"}
-          </Button>
-        </div>
+    <>
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <Field label="Record as">
+          {/* An order can be flipped between sale and purchase, which is the
+              mistake a parser makes. An expense stays one: it has no lines to
+              turn into an order. */}
+          <Select
+            value={type}
+            disabled={type === "expense"}
+            onChange={(e) => changeType(e.target.value as DraftType)}
+          >
+            {type === "expense" ? (
+              <option value="expense">Expense</option>
+            ) : (
+              <>
+                <option value="sale">Sale</option>
+                <option value="purchase">Purchase</option>
+              </>
+            )}
+          </Select>
+        </Field>
+        <Field label="Date" hint={dateHint}>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
       </div>
-    </Modal>
+
+      {type === "expense" ? (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Category">
+              <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+            </Field>
+            <Field label="Amount">
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={amount || ""}
+                onChange={(e) => setAmount(Number(e.target.value) || 0)}
+              />
+            </Field>
+          </div>
+          <Field label="Description">
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          </Field>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Field label={type === "purchase" ? "Supplier" : "Customer"}>
+              <Select value={party?.id ?? ""} onChange={(e) => setPartyId(e.target.value)}>
+                <option value="">{type === "purchase" ? "None" : "Walk-in / none"}</option>
+                {partyList.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {unknownName && (
+              <p className="text-xs text-warning">
+                “{unknownName}” is not one of your {type === "purchase" ? "suppliers" : "customers"}
+                . Pick one, or record this with no {type === "purchase" ? "supplier" : "customer"}.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {items.map((item, index) => (
+              <div key={index} className="grid grid-cols-[1fr_5rem_6rem] gap-2">
+                <Field label={index === 0 ? "Item" : undefined}>
+                  <Input
+                    value={item.description}
+                    onChange={(e) => patch(index, { description: e.target.value })}
+                  />
+                </Field>
+                <Field label={index === 0 ? "Qty" : undefined}>
+                  {/* Whole units, as the server stores them: a total worked
+                      out on 2.5 of something would not be the one recorded. */}
+                  <Input
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={item.quantity}
+                    onChange={(e) =>
+                      patch(index, {
+                        quantity: Math.max(0, Math.trunc(Number(e.target.value) || 0)),
+                      })
+                    }
+                  />
+                </Field>
+                <Field label={index === 0 ? "Price" : undefined}>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={item.unitPrice}
+                    onChange={(e) => patch(index, { unitPrice: Number(e.target.value) })}
+                  />
+                </Field>
+              </div>
+            ))}
+            {items.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Nothing was extracted from this message. Dismiss it, or record the order by hand.
+              </p>
+            )}
+          </div>
+
+          {items.length > 0 && (
+            <TotalsSummary
+              totals={totals}
+              taxRate={catalogue.taxRate}
+              currency={catalogue.currency}
+              discountType={discount}
+              discountValue={discountValue}
+              overDiscountHint="Discount is more than the subtotal. Remove it, or correct the lines above."
+              onRemoveDiscount={() => setDiscountType("none")}
+            />
+          )}
+        </>
+      )}
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose} disabled={pending}>
+          Cancel
+        </Button>
+        <Button onClick={record} disabled={pending || !ready}>
+          {pending ? "Recording…" : "Record it"}
+        </Button>
+      </div>
+    </>
   );
 }
 

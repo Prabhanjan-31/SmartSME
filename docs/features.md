@@ -29,8 +29,9 @@ reads **Overdue** once an unpaid balance is past its deadline. Click **any row**
 for a detail modal with line items, totals, a click-to-edit transaction date, a
 click-to-edit payment deadline, and the list of payments against the document
 with the day each one came. Inline "Record payment" (amount and the date it was
-paid, defaulting to today) and "Cancel"; cancelling reverses inventory and the
-party balance. Sales also have a printable invoice at `/sales/:id`, which
+paid, defaulting to today, with the picker limited to the days a payment may
+carry: see [below](#which-day-a-payment-may-carry)) and "Cancel"; cancelling
+reverses inventory and the party balance. Sales also have a printable invoice at `/sales/:id`, which
 carries the payment deadline and the payments made against it (date, how it
 was paid, amount), on screen and on paper.
 
@@ -62,6 +63,37 @@ moved: money taken at the time of the sale or purchase, a payment recorded
 later (dated whenever it actually came, not when it was typed in), or a
 settlement. The ledger is what lets the business-health score tell on-time
 from late; see [Business health](business-health.md#cash-flow-30).
+
+#### Which day a payment may carry
+
+Any day from the document's own date up to today, and nothing outside that:
+
+- **Not before the sale or purchase.** Money cannot arrive for an invoice that
+  did not exist yet.
+- **Not after today.** A shopkeeper on the 10th has not been paid on the 11th.
+  The refusal says what today is.
+- **The document's own day always counts**, whatever time of day the document
+  was made. This is a rule about calendar days, not clock times. It used to
+  compare instants, and an order accepted from Telegram or email (stamped with
+  the minute it was accepted, say 3:42 pm) could not be paid that same day,
+  because a date picked in the dialog is stored as noon, and noon is "before"
+  3:42 pm. Invoices typed into Smart Input or the form are themselves stored
+  at noon, which is why only inbound orders showed it.
+- **A document dated ahead of today** (an order booked for next week) takes no
+  payment until its day comes; the dialog says so and disables the date.
+
+The server enforces all four in `payment_moment()` in
+[`app/domain/payments.py`](../backend/app/domain/payments.py) and answers 400
+with the reason. The "Record payment" dialog applies the same rule first
+(`paymentDateWindow()` in [`src/lib/payments.ts`](../frontend/src/lib/payments.ts)):
+the date picker only offers days in the window, and a date outside it is
+explained under the field with Save switched off.
+
+"Today" is the shop's today, not the server's. A hosted server runs in UTC,
+which for a shop in India is five and a half hours behind, so between midnight
+and 5:30 am a payment dated today would have been refused as "in the future".
+`APP_TIMEZONE` (default `Asia/Kolkata`) puts the whole process on the shop's
+clock; see [Environment variables](setup.md#environment-variables).
 
 Each payment also records **how** it was paid. "Record payment", and the
 amount-paid section of a new sale or purchase, ask "Paid by" and then only for
@@ -114,6 +146,35 @@ rather than vanishing with it, and shows no source instead.
 
 The notify action dedupes against *unread* alerts of the same title, so a noisy
 rule cannot bury the one that matters.
+
+The red count on the bell in the top bar follows the list. "Mark read",
+"Unread", "Mark all read", dismissing and "Clear read" all update it at once, and
+so does anything else that could raise an alert (recording a sale that trips a
+rule, for example). The app shell listens for every successful write and
+refetches the unread and Inbox counts; before this it only refetched on a
+change of page, so the number was stale until you left Notifications.
+
+### Info tips
+
+A small **i** in a circle sits beside the page titles and the fields a first
+visit does not explain by itself. Hover it, tab to it, or tap it (a tap pins it
+open until you tap elsewhere or press Escape) for two or three sentences on
+what the thing is and what it changes. They are on:
+
+| Page | What the tips explain |
+|---|---|
+| Dashboard | how the business-health score is weighted and banded; what puts a product under "Needs attention" |
+| Smart Input | what to type, in which languages, and that nothing is saved until you confirm |
+| Sales, Purchases | what the list shows and how a row opens; where a document's "Due by" date comes from and that it can be extended for this one document |
+| Parties | what a balance is; that "Payment deadline (days)" overrides the business default for this party only, and applies to documents made from then on |
+| Settings | the invoice prefix and how numbers are formed; the default payment deadline (30 days) and how one party or one document overrides it |
+| Products | stock, and what the low-stock threshold triggers |
+| Expenses, Reports, Inbox, Notifications, Event bus | what the page is for |
+| Workflow | what a rule is; the exact field names a condition can test for each event; what each of the four actions does |
+| Team | the two roles and what an employee can do; how long an invitation lasts |
+
+The tips are for the screen only and are left off printed invoices. The
+component is described in [Design system](design.md).
 
 ---
 

@@ -75,6 +75,7 @@ export function Workflow() {
       <PageHeader
         title="Workflow"
         description="WHEN an event happens, THEN do something. Rules run inside the event transaction."
+        info="A rule says: WHEN this event happens, and an optional condition is true, THEN do this. Rules raise alerts or flag expenses. They run just after the sale, purchase or expense is saved, so they cannot stop or change it, and stock and balances update whatever the rules say."
       >
         <Button onClick={() => setCreating(true)}>
           <Icon name="plus" size={16} /> New rule
@@ -294,7 +295,10 @@ function RuleDialog({
         </Field>
 
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Field">
+          <Field
+            label="Field"
+            info="Which detail of the event to check. Sales and purchases: amount, total, paymentStatus (paid, partial or unpaid) and source. Sales also have subtotal. Stock updates: stock and threshold. Expenses: amount, category and description. Type it exactly as written here, because a misspelt field never matches. Leave the operator on Always to run the rule every time."
+          >
             <Input
               value={form.conditionField}
               onChange={set("conditionField")}
@@ -319,7 +323,10 @@ function RuleDialog({
           </Field>
         </div>
 
-        <Field label="THEN do this">
+        <Field
+          label="THEN do this"
+          info="Create a notification raises an alert with your title. Low-stock alert works on stock updates and alerts when the product is at or below its threshold. Flag the expense works on expenses and marks the expense for review. Update inventory only adds a line to the run log: stock moves by itself."
+        >
           <Select value={form.actionType} onChange={set("actionType")}>
             {ACTIONS.map((a) => (
               <option key={a.value} value={a.value}>

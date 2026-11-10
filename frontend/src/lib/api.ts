@@ -75,6 +75,26 @@ function withBusiness(path: string): string {
   return `${path}${path.includes("?") ? "&" : "?"}businessId=${encodeURIComponent(id)}`;
 }
 
+/**
+ * Who wants to know that something on the server just changed.
+ *
+ * The bell and the Inbox badge live in the shell, which outlives every page
+ * and only refetched its counts when the route changed. So marking an alert
+ * read on the Notifications page left the red count where it was until you
+ * went somewhere else. Each page could tell the shell after each of its own
+ * writes, but that is a rule every future button would have to remember. The
+ * one place every write passes through is here.
+ */
+const changeListeners = new Set<() => void>();
+
+/** Calls `listener` after every successful write. Returns the unsubscribe. */
+export function onDataChanged(listener: () => void): () => void {
+  changeListeners.add(listener);
+  return () => {
+    changeListeners.delete(listener);
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = withBusiness(path);
   // Only a JSON body gets a JSON content type. A file upload sends FormData,
@@ -103,6 +123,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(detail, res.status, path);
   }
+  // Signing in or out changes who is asking, not what the counts are, and a
+  // refetch racing the sign-out would be answered 401.
+  const wrote = (init?.method ?? "GET").toUpperCase() !== "GET";
+  if (wrote && !path.startsWith("/auth/")) changeListeners.forEach((tell) => tell());
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }

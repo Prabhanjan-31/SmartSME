@@ -188,6 +188,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M12 7v5l3 2" />
     </>
   ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 16v-4.5M12 8h.01" />
+    </>
+  ),
   building: (
     <>
       <rect x="4" y="2" width="16" height="20" rx="2" />

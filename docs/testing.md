@@ -10,7 +10,7 @@ What is covered, how to run it, and how to add to it.
 
 ```bash
 cd backend
-.venv/Scripts/python -m pytest -q              # 484 tests
+.venv/Scripts/python -m pytest -q              # 569 tests
 ```
 
 ```
@@ -19,21 +19,23 @@ cd backend
   Alert log                9 passed
   Business health         55 passed
   Dispatch                 8 passed
-  Domain units            42 passed
+  Domain units            48 passed
   Endpoint smoke          36 passed
   Event authors            6 passed
-  Inbound orders          40 passed
+  Inbound orders          44 passed
   Languages               46 passed
   Order slips (OCR)       23 passed
   Paging                  25 passed
   Payment modes           22 passed
-  Payments & deadlines    26 passed
+  Payments & deadlines    42 passed
+  Point of view           39 passed
   Review regressions       8 passed
   Review regressions II   22 passed
   Roles & throttle        27 passed
   Translation             65 passed
+  Unknown words           20 passed
 -------------------------------------------------------------------------------
-  484 passed in 30.12s
+  569 passed in 42.45s
 ```
 
 Hooks in `tests/conftest.py` replace pytest's default report order. Pytest prints
@@ -42,7 +44,7 @@ want has scrolled off; here a per-layer summary comes last, with the failures,
 full traceback and assertion diff, printed underneath it. A skip prints its
 reason, which is almost always "Postgres is unreachable".
 
-Seventeen layers, in one run.
+Nineteen layers, in one run.
 
 **`tests/test_health.py`: 55 tests over the business-health score.** The scoring
 functions are pure, so every threshold in
@@ -56,15 +58,26 @@ time and late, a cancelled sale, a dead product) has every input checked to the
 rupee and every score checked against arithmetic written out in the test. All
 four fail against the score this replaced.
 
-**`tests/test_payments.py`: 26 tests over payment deadlines and the ledger.**
+**`tests/test_payments.py`: 42 tests over payment deadlines and the ledger.**
 Where a deadline comes from (the business default, a party's own terms, a hand
 edit on one document), that it moves with a corrected date and cannot be set
 before the document, that money taken at the sale is dated on the sale and a
-later payment on the day it came, that a payment cannot predate its document,
-that settling a party or everything writes one ledger row per document, that
-an unpaid balance reads overdue once its day has passed, that only a manager can
-change a deadline, plus the Reports additions: top suppliers, and the trend
-chart's switch between sales, purchases and expenses.
+later payment on the day it came, that settling a party or everything writes
+one ledger row per document, that an unpaid balance reads overdue once its day
+has passed, that only a manager can change a deadline, plus the Reports
+additions: top suppliers, and the trend chart's switch between sales, purchases
+and expenses.
+
+Sixteen of them pin **which day a payment may carry**, which is a rule about
+calendar days and used to be a comparison of clock times. A payment can be
+dated the day of the sale whatever the clock says (an invoice raised at three
+in the afternoon could not be paid that day, because a date picked in the
+dialog is stored as noon, and noon is "before" three), it cannot be dated
+after today, it cannot be dated before its document, a sale dated ahead takes
+no payment until its day comes, and a purchase follows the same rules.
+`payment_moment()` is pure and takes the current time as an argument, so the
+edges (a minute before midnight is still today) are checked without waiting
+for them, along with the wording of each refusal.
 
 **`tests/test_payment_modes.py`: 22 tests over how a payment was made.** The
 rules first, with no database: cash keeps nothing, every other mode needs its
@@ -76,11 +89,35 @@ money taken at the sale carries the mode from the form, a bad reference refuses
 the whole sale rather than leaving an invoice behind, and a sale published
 without a mode, or a settlement, says "not recorded" rather than "cash".
 
-**`tests/test_domain.py`: 42 unit tests, no database.** The maths and parsing the
+**`tests/test_domain.py`: 48 unit tests, no database.** The maths and parsing the
 money and Smart Input features depend on: discount-before-tax totals for sales and
 purchases, `round2` half-up rounding, line-item validation, the full date-phrase
 parser, discount extraction, the heuristic classifier, party/product fuzzy
-matching, report period resolution, and password hashing.
+matching, report period resolution, and password hashing. Six cover the shop's
+clock: `APP_TIMEZONE` is applied to the process, a `TZ` already set on the
+machine wins, a blank or unknown zone leaves the machine clock alone, and the
+default is India.
+
+**`tests/test_point_of_view.py`: 39 tests over who sold to whom.** "Anita
+Stores purchased 5 rice bags from us" is a sale, and the word "purchased" must
+not make it a purchase. Notes written from the customer's side, from the
+shop's side and from a supplier's side, in English, Hindi and Kannada; that the
+shop itself ("us", "our shop") is never taken for the party; that a customer
+called "US Foods" is still a name; that wanting to buy is an order; that
+several items and a trailing "paid 500" survive; and, with the model faked,
+that an answer which read the verb is corrected while one about a note that
+does not mention the shop is left alone. The last two go through grounding, so
+the draft the shopkeeper sees is a sale to the right customer at the selling
+price. See [Point of view](smart-input.md#point-of-view).
+
+**`tests/test_grounding_oov.py`: 20 tests over words the lexicon does not
+know.** A qualifier in front of a known word ("ragi atta") picks the product
+that names it and declines when none does, units and linking words are not
+qualifiers, and words after the known one do not block a match. Then the
+model's English name: it is tried only when the note's own word finds nothing,
+the note's word wins when both match, a missing or malformed one is ignored,
+and the regex parser never invents one. See
+[Words the lexicon does not know](smart-input.md#words-the-lexicon-does-not-know).
 
 **`tests/test_multilingual.py`: 46 tests over Hindi and Kannada.** The same
 note written five ways must produce the same event; native digits become
@@ -100,12 +137,19 @@ rule, event and author, that an employee's alert is attributed to the employee,
 the severity and unread filters, mark-unread, dismissal, bulk clear, and that a
 sourceless alert still renders.
 
-**`tests/test_inbound.py` - 40 tests over orders arriving from outside.** A raw
+**`tests/test_inbound.py` - 44 tests over orders arriving from outside.** A raw
 RFC-822 message and a real Telegram `getUpdates` payload go in; a draft, a queue
 entry and eventually a recorded sale with moved stock come out. Covers routing by
 token, HTML-only mail, Kannada surviving the mail encoding, deduplication (the
 key is the message, not the chat), unroutable mail being dropped rather than
-guessed at, and that an employee can work the queue but not erase it.
+guessed at, that an employee can work the queue but not erase it, and that an
+order accepted in the afternoon can be paid the same day (an accepted order is
+dated to the minute it was accepted, which is what exposed the payment-date
+bug above). Three cover the review window: a draft corrected from a sale to a
+purchase, with another party and another day, is recorded as exactly that;
+the total the window works out from `GET /api/input/status` is the total the
+server stores for a discounted order; and an emailed expense can be corrected
+and recorded, while one with no amount is refused and stays in the queue.
 
 **`tests/test_dispatch.py` - 8 tests over both dispatch modes.** That inline
 applies effects before a write returns, that celery mode enqueues instead, that
@@ -191,8 +235,10 @@ npm test            # vitest, once
 npm run test:watch
 ```
 
-Small on purpose, and pointed at one thing: `src/lib/api.ts`, where the
-frontend and the API agree on the shape of a request.
+81 tests in five files. Small on purpose, and pointed first at one thing:
+`src/lib/api.ts`, where the frontend and the API agree on the shape of a
+request. Vitest runs in plain Node with no browser, so what is tested is the
+logic kept in `src/lib`, not the components that draw it.
 
 That file is covered because a bug lived in it undetected. `request()` set
 `Content-Type: application/json` whenever a body was present - including when
@@ -210,6 +256,29 @@ rather than any coverage number.
 The API sends `null` for a business-health part with no data behind it, and the
 dashboard must show that as "No data yet" with an empty bar, never as a red
 zero. The backend tests pin the `null`; this pins what the browser does with it.
+
+`src/lib/api.test.ts` also pins the signal that keeps the bell honest. Every
+write that succeeds tells the app shell, which refetches the unread-alert and
+Inbox counts; marking an alert read used to leave the red number in place
+until you left the page. The tests check that a POST, PATCH or DELETE fires
+it, that a GET, a refused write, and signing in or out do not, and that an
+unsubscribed listener stops hearing it.
+
+`src/lib/payments.test.ts` covers what the "Record payment" dialog asks for in
+each mode, and `paymentDateWindow()`: the same calendar-day rule the server
+enforces (not before the sale, not after today), so the date picker can be
+limited to days the server will accept and a bad date is explained before the
+request is sent.
+
+`src/lib/draft.test.ts` covers the Inbox review window: what it adds up to and
+what it sends back. `documentTotals()` is held to the server's rule (discount
+off the subtotal, then tax, rounded to paise, an over-discount flagged).
+`repriceLines()` must move a catalogue price to the other side when a draft is
+flipped between sale and purchase, and leave a typed price alone.
+`acceptPayload()` must send the party the reviewer picked and not the one the
+parser guessed, send today as no date, keep a discount only on a sale, leave
+out emptied lines, and send an expense as a category, an amount and a
+description.
 
 ## What the test suite does not measure
 

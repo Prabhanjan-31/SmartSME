@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Pagination, type PageInfo } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -121,7 +122,11 @@ export function Sales() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Sales" description="Invoices and customer orders.">
+      <PageHeader
+        title="Sales"
+        description="Invoices and customer orders."
+        info="Every sale is an invoice. Paid, Partial and Unpaid show how much of it has been received, and Overdue means its payment deadline has passed. Open an invoice to see its items and payments, or to record a payment."
+      >
         <Can do={PERMISSIONS.txnWrite}>
           <Button onClick={() => setNewOpen(true)}>
             <Icon name="plus" size={16} /> New sale
@@ -219,6 +224,8 @@ export function Sales() {
                           <RecordPaymentButton
                             due={sale.due}
                             currency={cur}
+                            documentDate={sale.date}
+                            noun="sale"
                             onSubmit={(payment) => api.post(`/sales/${sale.id}/payment`, payment)}
                             onDone={reload}
                           />
@@ -278,19 +285,27 @@ export function Sales() {
                   }}
                 />
                 {detail.status !== "cancelled" && detail.due > 0 && (
-                  <EditDateButton
-                    needs={PERMISSIONS.dataManage}
-                    date={detail.dueDate}
-                    prefix="Due by"
-                    tone={detail.overdue ? "destructive" : "muted"}
-                    label="Change payment deadline"
-                    hint="The day the balance is expected. Extend it for someone who needs longer."
-                    onSave={(d) => api.patch(`/sales/${detail.id}/due-date`, { date: d })}
-                    onDone={() => {
-                      reload();
-                      openDetail(detail.id);
-                    }}
-                  />
+                  <span className="inline-flex items-center gap-1.5">
+                    <EditDateButton
+                      needs={PERMISSIONS.dataManage}
+                      date={detail.dueDate}
+                      prefix="Due by"
+                      tone={detail.overdue ? "destructive" : "muted"}
+                      label="Change payment deadline"
+                      hint="The day the balance is expected. Extend it for someone who needs longer."
+                      onSave={(d) => api.patch(`/sales/${detail.id}/due-date`, { date: d })}
+                      onDone={() => {
+                        reload();
+                        openDetail(detail.id);
+                      }}
+                    />
+                    <InfoTip label="About the payment deadline">
+                      The sale date plus the payment deadline: this customer&apos;s own number of
+                      days if one is set under Parties, otherwise the default in Settings (30 days
+                      to start with). Anyone allowed to amend sales can click the date to move the
+                      deadline for this invoice alone.
+                    </InfoTip>
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -401,6 +416,8 @@ export function Sales() {
                 <RecordPaymentButton
                   due={detail.due}
                   currency={cur}
+                  documentDate={detail.date}
+                  noun="sale"
                   variant="primary"
                   onSubmit={(payment) => api.post(`/sales/${detail.id}/payment`, payment)}
                   onDone={() => {

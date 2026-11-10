@@ -30,6 +30,48 @@ review screen sends back, so correcting a draft cannot relabel where it came
 from. The five values are `Form` (typed into a form), `AI · Text` (Smart Input
 text), `AI · Photo` (Smart Input upload), `Email` and `Telegram`.
 
+### The review window
+
+**Review** opens the draft as a small form. Everything a document needs is on
+it before anything is recorded, and all of it can be corrected:
+
+* **Who sent it.** The top line names the sender, the channel and when the
+  message arrived, above the message exactly as it was written.
+* **Record as.** Sale or Purchase. Flipping it is the correction for a parser
+  that read the direction wrong. It swaps the party list (customers for a sale,
+  suppliers for a purchase), moves any line still at its catalogue price to the
+  price for the new direction (selling price or cost), leaves a price somebody
+  typed alone, and drops the discount, which only a sale carries.
+* **Date.** The day the message named ("yesterday", "on 7 Nov"), otherwise
+  today. Left at today, the document is stamped with the minute it was
+  accepted. Any other day is recorded at noon of that day.
+* **Customer or Supplier.** The party the parser matched, already selected. A
+  name it could not match is shown as written with a note, and the order is
+  recorded with no party unless one is picked: free text never creates a party.
+  The list is fetched each time a message is opened, so a customer added a
+  minute ago is in it.
+* **Lines.** Item, quantity (whole units, as stock is counted) and price. A
+  line whose name is cleared, or whose quantity is 0, is left out.
+* **Total.** Subtotal, discount, tax at the business's rate and the total,
+  recalculated as the lines change. A discount the message asked for shows with
+  a **Remove** link (its size cannot be edited here). A discount larger than
+  the subtotal blocks **Record it**, because the server would refuse it.
+
+An expense ("paid electricity bill 3200") gets a shorter form: category, amount
+and description, with the same date field. It stays an expense, since it has no
+lines to turn into an order.
+
+The total is worked out in the browser with the same arithmetic the server uses
+(discount off the subtotal, then tax), from the tax rate and prices that
+`GET /api/input/status` returns. It is there so the reviewer sees the figure
+before committing to it. The server still does its own sum when the draft is
+accepted, and that sum is the one stored. The logic lives in
+`frontend/src/lib/draft.ts`, shared with the sale, purchase and Smart Input
+forms, so a total reads the same wherever it is drawn.
+
+An order accepted from the Inbox is recorded unpaid. A payment is recorded
+afterwards from the sale or purchase, like any other.
+
 ### How anyone finds out
 
 Collection is automatic and always has been: a background thread sweeps every
@@ -161,8 +203,9 @@ authentication, and send to the address from step 2.
   and in the browser tab title, from whatever page you happen to be on. **Check
   now** forces the sweep this second instead of waiting for the next one.
 * The order appears as a draft: parsed, with the customer and products already
-  matched against your catalogue. **Review** lets you correct anything, and only
-  then does accepting write a sale.
+  matched against your catalogue. **Review** shows who it is for, the date and
+  what it comes to, lets you correct any of it, and only then does accepting
+  write a sale.
 
 **Nothing showed up?**
 

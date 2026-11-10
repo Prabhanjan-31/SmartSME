@@ -2,20 +2,27 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Card } from "./card";
+import { InfoTip } from "./info-tip";
 
 export function PageHeader({
   title,
   description,
+  info,
   children,
 }: {
   title: string;
   description?: string;
+  /** What this page is for, behind an "i" beside the title. For someone new. */
+  info?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          {info && <InfoTip label={`About ${title}`}>{info}</InfoTip>}
+        </div>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
@@ -114,12 +121,15 @@ export function Skeleton({ className }: { className?: string }) {
 export function SectionCard({
   title,
   description,
+  info,
   action,
   children,
   className,
 }: {
   title: string;
   description?: string;
+  /** A longer explanation behind an "i" beside the title. */
+  info?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -128,7 +138,10 @@ export function SectionCard({
     <Card className={className}>
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div>
-          <h3 className="font-semibold tracking-tight">{title}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-semibold tracking-tight">{title}</h3>
+            {info && <InfoTip label={`About ${title}`}>{info}</InfoTip>}
+          </div>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         {action}

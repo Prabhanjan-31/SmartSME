@@ -74,6 +74,52 @@ def _alt(*words: str) -> str:
 
 
 VOCABULARY: list[tuple[str, str]] = [
+    # -- this shop ---------------------------------------------------------
+    # "humse" is "from us" in one word, so the postposition rules further down
+    # never see it. It has to come out as "from us" for `nlp.py` to tell that
+    # "Anita ne humse 5 kg chawal kharida" is a sale: she did the buying.
+    (
+        _alt(
+            "हमसे",
+            "हम से",
+            "मुझसे",
+            "मुझ से",
+            "humse",
+            "hamse",
+            "hum se",
+            "mujhse",
+            "mujh se",
+            "ನಮ್ಮಿಂದ",
+            "ನನ್ನಿಂದ",
+            "namminda",
+            "nammindha",
+            "nanninda",
+        ),
+        "from us",
+    ),
+    (
+        _alt(
+            "हमको",
+            "हमें",
+            "हमे",
+            "मुझको",
+            "मुझे",
+            "humko",
+            "hamko",
+            "humein",
+            "hamein",
+            "hume",
+            "mujhko",
+            "mujhe",
+            "ನಮಗೆ",
+            "ನನಗೆ",
+            "namage",
+            "namge",
+            "nanage",
+            "nange",
+        ),
+        "to us",
+    ),
     # -- sold -------------------------------------------------------------
     (
         _alt(
@@ -117,6 +163,8 @@ VOCABULARY: list[tuple[str, str]] = [
             "ख़रीदा",
             "खरीदी",
             "ख़रीदी",
+            "खरीदे",
+            "ख़रीदे",
             "खरीद",
             "मंगाया",
             "मँगाया",
@@ -126,12 +174,26 @@ VOCABULARY: list[tuple[str, str]] = [
             "khareedi",
             "kharidi",
             "kharid",
+            "kharide",
+            "khareede",
             "mangaya",
             "mangvaya",
             "ಖರೀದಿಸಿದೆ",
+            # What somebody else did: "Anita bought", which Kannada says with a
+            # different ending from "I bought".
+            "ಖರೀದಿಸಿದರು",
+            "ಖರೀದಿಸಿದಳು",
+            "ಖರೀದಿಸಿದನು",
+            "ಖರೀದಿಸಿದ್ದಾರೆ",
+            "ಖರೀದಿಸಿದ್ದೇನೆ",
+            "ಖರೀದಿಸಿದೆವು",
             "ಖರೀದಿಸಿ",
             "ಖರೀದಿ",
             "ತಂದೆ",
+            "kharidisidaru",
+            "kharidisidru",
+            "kharidisidalu",
+            "kharidisidanu",
             "kharidiside",
             "kharidisi",
             "kharidi",
@@ -338,6 +400,11 @@ _NOT_A_NAME = {
     "for",
     "at",
     "of",
+    # "from us" / "to us", written by the vocabulary above. Without these a
+    # name that follows ("humse Anita ko") is glued on as "to us Anita".
+    "from",
+    "to",
+    "us",
 }
 
 _TO_WORDS = ("को", "ko", "ಗೆ", "ge", "ಕ್ಕೆ", "kke")

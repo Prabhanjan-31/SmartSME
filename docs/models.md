@@ -77,8 +77,10 @@ Measured, not asserted. See [Accuracy evaluation](evaluation.md):
 
 | Task | Engine | Result |
 |---|---|---|
-| Typed notes (n=70) | Gemini 3.5 Flash Lite | 97.1% exact |
-| Typed notes (n=70) | the regex fallback, no model | 85.7% exact |
+| Typed notes (n=70) | Gemini 3.5 Flash Lite | 100.0% exact |
+| Typed notes (n=70) | the regex fallback, no model | 87.1% exact |
+| Notes with unknown words (n=24) | Gemini 3.5 Flash Lite | 83.3% exact |
+| Notes with unknown words (n=24) | the regex fallback, no model | 29.2% exact |
 | Handwritten slips (n=12) | Gemini (vision) | 100% exact |
 | Handwritten slips (n=12) | OCR.space | 75.0% exact |
 

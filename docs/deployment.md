@@ -58,8 +58,13 @@ cd backend
 DATABASE_URL="postgresql+psycopg://…<unpooled host>…/neondb?sslmode=require" alembic upgrade head
 ```
 
-Verify: `SELECT version_num FROM alembic_version;` returns `0001_initial_schema`,
-and `information_schema.tables` lists the 14 business tables.
+Verify: `SELECT version_num FROM alembic_version;` returns `0009_payment_modes`
+(the newest file in `backend/alembic/versions/`), and `information_schema.tables`
+lists the 19 application tables.
+
+Run the same command again after every pull that adds a migration. The API
+does not migrate on start, so a new column the code expects and the database
+lacks shows up as a 500 on the first request that touches it.
 
 ### 2. Backend: Render, Railway or Fly
 
@@ -80,10 +85,28 @@ CORS_ORIGINS="https://your-app.vercel.app"
 SEED_DEMO_DATA=false                       # true only if you want the demo tenant in production
 COOKIE_SECURE=true                         # HTTPS
 COOKIE_SAMESITE=lax                        # lax works because of the rewrite in step 3
+APP_TIMEZONE="Asia/Kolkata"                # the shop's clock; this is the default, see below
 GOOGLE_API_KEY="…"                         # optional, free; smarter NLP + OCR
 ```
 
 Health check: `GET /api/health`.
+
+**The clock.** Render, Railway and Fly all run in UTC, and every date in this
+app is the server's local time: "today" on the dashboard, the date stamped on
+an order accepted from Telegram, the day a payment is checked against. For a
+shop in India, UTC is five and a half hours behind, so from midnight to 5:30
+in the morning the server would still be on yesterday, and a payment dated
+today would be refused as being in the future. `APP_TIMEZONE` puts the whole
+process on the shop's clock at start-up. It defaults to `Asia/Kolkata`, so a
+deployment in India needs nothing set; a shop elsewhere sets its own IANA name
+(`Asia/Dubai`, `Europe/London`). Three details:
+
+- A `TZ` variable set on the host wins over `APP_TIMEZONE`. Use one or the
+  other, not both with different values.
+- An unknown name is logged as a warning and the machine clock is kept.
+- Rows written before this setting existed were stamped in UTC and are not
+  rewritten. For India they read up to five and a half hours early, never
+  late, so none of them is dated in the future.
 
 ### 3. Frontend: Vercel
 

@@ -3,6 +3,7 @@ import { useApi } from "@/lib/api";
 import { PageHeader, PageState, SectionCard, StatCard, EmptyState } from "@/components/ui/misc";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { buttonVariants } from "@/components/ui/button";
 import { PaymentBadge } from "@/components/Status";
 import { Icon } from "@/components/Icon";
@@ -141,7 +142,15 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Business health</CardTitle>
+            <CardTitle className="flex items-center gap-1.5">
+              Business health
+              <InfoTip label="About the business health score">
+                A mark out of 100 built from four parts: cash flow (30%), profitability (30%),
+                revenue (25%) and inventory (15%). 70 and up is Healthy, 40 to 69 is Fair, below 40
+                is At risk. One weak part holds the overall mark down, and a part with nothing to
+                measure yet shows no number.
+              </InfoTip>
+            </CardTitle>
             <CardDescription>Overall score</CardDescription>
           </CardHeader>
           <CardContent>
@@ -256,6 +265,7 @@ export function Dashboard() {
 
       <SectionCard
         title="Needs attention"
+        info="Products whose stock is at or below their low-stock threshold. Each product has its own threshold, set on the Products page."
         action={
           <Link to="/notifications" className="text-sm text-link hover:underline">
             All alerts

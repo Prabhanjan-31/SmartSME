@@ -84,7 +84,7 @@ parser mid-demo.
 
 **The app runs fine without any key.** Forms, ledger, inventory, reports, roles,
 the event bus and both inbound channels are unaffected, and typed notes fall
-back to the built-in regex parser, which scores 85.7% exact-match on the
+back to the built-in regex parser, which scores 87.1% exact-match on the
 [evaluation set](docs/evaluation.md) and 100% on Hindi and Kannada script. A key
 buys sharper parsing of messy English and, with `GOOGLE_API_KEY` specifically,
 reading photographed slips. `OCR_SPACE_API_KEY` is a second free option that
@@ -207,8 +207,8 @@ Inbox the same way. Full walkthrough:
 window, and set a password. That employee can record sales but will not see
 Workflow or Team, and cannot delete anything.
 
-**7. The tests.** `cd backend; .venv\Scripts\python -m pytest -q` - 484 of
-them, about fifteen seconds. Accuracy is measured separately and on purpose:
+**7. The tests.** `cd backend; .venv\Scripts\python -m pytest -q` - 569 of
+them, under a minute. Accuracy is measured separately and on purpose:
 [backend/eval](backend/eval/README.md).
 
 **8. Under load** (optional). `python -m loadtest.seed` then the Locust command

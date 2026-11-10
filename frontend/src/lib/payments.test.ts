@@ -8,6 +8,7 @@ import {
   PAYMENT_MODES,
   describePayment,
   emptyPayment,
+  paymentDateWindow,
   paymentProblem,
   toPayload,
 } from "./payments";
@@ -105,5 +106,57 @@ describe("describePayment", () => {
     expect(describePayment({ mode: null, reference: null, details: null })).toBe(
       "Mode not recorded",
     );
+  });
+});
+
+describe("paymentDateWindow", () => {
+  // Built from parts, not parsed from a string, so the test means the same
+  // day whichever time zone it is run in.
+  const NOW = new Date(2026, 10, 10, 12, 0, 0);
+
+  it("lets an invoice raised this afternoon be paid today", () => {
+    // The bug this exists for: an order accepted from Telegram is stamped
+    // with the minute it was accepted, and the date picked in the dialog has
+    // no time at all. Compared as moments, today was "before" the invoice.
+    const w = paymentDateWindow("2026-11-10", "2026-11-10T15:42:07", "sale", NOW);
+
+    expect(w.problem).toBeNull();
+    expect(w.earliest).toBe("2026-11-10");
+    expect(w.latest).toBe("2026-11-10");
+  });
+
+  it("allows any day from the document's own up to today", () => {
+    const of = (date: string) => paymentDateWindow(date, "2026-11-03T09:00:00", "sale", NOW);
+
+    expect(of("2026-11-03").problem).toBeNull();
+    expect(of("2026-11-07").problem).toBeNull();
+    expect(of("2026-11-10").problem).toBeNull();
+    expect(of("2026-11-03")).toMatchObject({ earliest: "2026-11-03", latest: "2026-11-10" });
+  });
+
+  it("refuses tomorrow", () => {
+    const w = paymentDateWindow("2026-11-11", "2026-11-03T09:00:00", "sale", NOW);
+
+    expect(w.problem).toMatch(/future/);
+  });
+
+  it("refuses a day before the document, and says which day that is", () => {
+    const w = paymentDateWindow("2026-11-02", "2026-11-03T09:00:00", "purchase", NOW);
+
+    expect(w.problem).toMatch(/before the purchase itself/);
+    expect(w.problem).toMatch(/0?3 Nov 2026/);
+  });
+
+  it("explains a document dated ahead of today, whichever day was picked", () => {
+    for (const picked of ["2026-11-10", "2026-11-12", "2026-11-15"]) {
+      const w = paymentDateWindow(picked, "2026-11-12T12:00:00", "sale", NOW);
+      expect(w.problem).toMatch(/has not arrived yet/);
+    }
+  });
+
+  it("asks for a date when the field has been cleared", () => {
+    const w = paymentDateWindow("", "2026-11-03T09:00:00", "sale", NOW);
+
+    expect(w.problem).toMatch(/Choose the day/);
   });
 });

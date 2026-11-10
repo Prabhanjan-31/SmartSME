@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from app.domain.payments import payment_moment
+
 from .test_health import _ago, _post, _sign_up
 
 
@@ -256,6 +258,139 @@ def test_a_payment_cannot_be_dated_before_the_sale(shop):
     assert r.status_code == 400
     assert "before" in r.json()["detail"]
     assert c.get(f"/api/sales/{sale_id}").json()["amountPaid"] == 0
+
+
+def test_a_payment_can_be_dated_the_day_of_the_sale_whatever_the_clock_says(shop):
+    """An order accepted from Telegram or email is stamped with the minute it
+    was accepted, and a date picked in the payment dialog is stored as noon.
+    Compared as instants, an invoice raised in the afternoon could not be paid
+    on its own day: the report was an invoice dated 10 Nov that would only
+    take a payment dated 11 Nov."""
+    c, product = shop
+    today = datetime.now().strftime("%Y-%m-%d")
+    sale_id = _post(
+        c,
+        "/api/sales",
+        {
+            "items": [
+                {"productId": product, "description": "Soap", "quantity": 1, "unitPrice": 100}
+            ],
+            "date": f"{today}T23:59:00",
+        },
+    )
+    r = c.post(f"/api/sales/{sale_id}/payment", json={"amount": 40, "date": today})
+    assert r.status_code == 200, r.text
+
+    sale = c.get(f"/api/sales/{sale_id}").json()
+    assert sale["amountPaid"] == 40
+    # Stored no earlier than the invoice, so the ledger reads in order.
+    assert [p["date"] for p in sale["payments"]] == [sale["date"]]
+
+
+def test_a_payment_cannot_be_dated_after_today(shop):
+    c, product = shop
+    sale_id = _sale(c, product=product, days_ago=2)
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    r = c.post(f"/api/sales/{sale_id}/payment", json={"amount": 10, "date": tomorrow})
+    assert r.status_code == 400
+    assert "future" in r.json()["detail"]
+    assert c.get(f"/api/sales/{sale_id}").json()["amountPaid"] == 0
+
+
+def test_the_same_two_rules_hold_for_a_bill(shop):
+    c, product = shop
+    today = datetime.now().strftime("%Y-%m-%d")
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    bill = _post(
+        c,
+        "/api/purchases",
+        {
+            "items": [
+                {"productId": product, "description": "Soap", "quantity": 1, "unitPrice": 100}
+            ],
+            "date": f"{today}T23:59:00",
+        },
+    )
+    late = c.post(f"/api/purchases/{bill}/payment", json={"amount": 10, "date": tomorrow})
+    assert late.status_code == 400 and "future" in late.json()["detail"]
+    same_day = c.post(f"/api/purchases/{bill}/payment", json={"amount": 10, "date": today})
+    assert same_day.status_code == 200, same_day.text
+    assert c.get(f"/api/purchases/{bill}").json()["amountPaid"] == 10
+
+
+def test_a_sale_dated_ahead_cannot_take_a_payment_yet(shop):
+    """No day is both on or after the sale's and on or before today, so the
+    answer says that instead of sending the shopkeeper round in a circle."""
+    c, product = shop
+    ahead = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
+    sale_id = _post(
+        c,
+        "/api/sales",
+        {
+            "items": [
+                {"productId": product, "description": "Soap", "quantity": 1, "unitPrice": 100}
+            ],
+            "date": ahead,
+        },
+    )
+    for date in (datetime.now().strftime("%Y-%m-%d"), ahead, None):
+        body = {"amount": 10} if date is None else {"amount": 10, "date": date}
+        r = c.post(f"/api/sales/{sale_id}/payment", json=body)
+        assert r.status_code == 400, date
+        assert "not arrived yet" in r.json()["detail"], date
+    assert c.get(f"/api/sales/{sale_id}").json()["amountPaid"] == 0
+
+
+NOON = datetime(2026, 11, 10, 12, 0)
+MID_AFTERNOON = datetime(2026, 11, 10, 15, 42, 7)
+
+
+@pytest.mark.parametrize(
+    ("doc_date", "picked", "now", "stored"),
+    [
+        # The report: raised at 15:42 from Telegram, paid "10 Nov" in the dialog.
+        (MID_AFTERNOON, NOON, datetime(2026, 11, 10, 16, 0), MID_AFTERNOON),
+        # Typed into Smart Input, so both are noon. This always worked.
+        (NOON, NOON, datetime(2026, 11, 10, 16, 0), NOON),
+        # No date sent: the moment it was recorded.
+        (NOON, None, datetime(2026, 11, 10, 16, 0), datetime(2026, 11, 10, 16, 0)),
+        # No date sent, before noon, on a sale dated today.
+        (NOON, None, datetime(2026, 11, 10, 9, 0), NOON),
+        # A later day keeps the time it was given.
+        (MID_AFTERNOON, datetime(2026, 11, 12, 12, 0), datetime(2026, 11, 14, 8, 0),
+         datetime(2026, 11, 12, 12, 0)),
+        # Today, a minute before midnight, is still today.
+        (NOON, datetime(2026, 11, 14, 12, 0), datetime(2026, 11, 14, 23, 59),
+         datetime(2026, 11, 14, 12, 0)),
+    ],
+)  # fmt: skip
+def test_when_a_payment_is_recorded_as_made(doc_date, picked, now, stored):
+    assert payment_moment(doc_date, picked, "sale", now) == stored
+
+
+@pytest.mark.parametrize(
+    ("doc_date", "picked", "now", "says"),
+    [
+        (MID_AFTERNOON, datetime(2026, 11, 9, 12, 0), datetime(2026, 11, 10, 16, 0), "before"),
+        (MID_AFTERNOON, datetime(2026, 11, 9, 23, 59), datetime(2026, 11, 10, 16, 0), "before"),
+        (NOON, datetime(2026, 11, 11, 12, 0), datetime(2026, 11, 10, 16, 0), "future"),
+        # One minute into tomorrow is tomorrow.
+        (NOON, datetime(2026, 11, 11, 0, 1), datetime(2026, 11, 10, 23, 59), "future"),
+        (datetime(2026, 11, 13, 12, 0), NOON, datetime(2026, 11, 10, 16, 0), "not arrived yet"),
+    ],
+)
+def test_when_a_payment_is_refused(doc_date, picked, now, says):
+    with pytest.raises(ValueError, match=says):
+        payment_moment(doc_date, picked, "sale", now)
+
+
+def test_the_refusal_names_the_dates_involved():
+    """ "Cannot be dated before the sale" left the shopkeeper to work out
+    which date the sale had."""
+    with pytest.raises(ValueError, match="10 Nov 2026"):
+        payment_moment(MID_AFTERNOON, datetime(2026, 11, 9, 12, 0), "sale", MID_AFTERNOON)
+    with pytest.raises(ValueError, match="Today is 10 Nov 2026"):
+        payment_moment(NOON, datetime(2026, 11, 11, 12, 0), "sale", MID_AFTERNOON)
 
 
 def test_overpaying_records_only_what_the_invoice_could_take(shop):

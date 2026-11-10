@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Input, Select } from "./ui/input";
 import { Icon } from "./Icon";
-import { money, round2 } from "@/lib/utils";
+import { TotalsSummary } from "./TotalsSummary";
+import { documentTotals } from "@/lib/draft";
+import { money } from "@/lib/utils";
 
 export interface EditorProduct {
   id: string;
@@ -69,23 +71,12 @@ export function LineItemsEditor({
     setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.key !== key) : rs));
   }
 
-  const subtotal = useMemo(
-    () => round2(rows.reduce((a, r) => a + (r.quantity || 0) * (r.unitPrice || 0), 0)),
-    [rows],
-  );
-
   // Discount applies to the subtotal before tax, mirroring the server so the
   // preview matches exactly what gets stored.
-  const discountAmount =
-    discountType === "amount"
-      ? round2(Math.max(0, discountValue))
-      : discountType === "percentage"
-        ? round2((subtotal * Math.max(0, discountValue)) / 100)
-        : 0;
-  const overDiscount = discountType !== "none" && discountAmount > subtotal;
-  const discountedSubtotal = round2(Math.max(0, subtotal - discountAmount));
-  const tax = round2(discountedSubtotal * (taxRate / 100));
-  const total = round2(discountedSubtotal + tax);
+  const totals = useMemo(
+    () => documentTotals(rows, taxRate, discountType, discountValue),
+    [rows, taxRate, discountType, discountValue],
+  );
 
   useEffect(() => {
     onChange?.(
@@ -174,31 +165,14 @@ export function LineItemsEditor({
         <Icon name="plus" size={16} /> Add item
       </Button>
 
-      <div className="mt-2 space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span className="tabular-nums">{money(subtotal, currency)}</span>
-        </div>
-        {discountAmount > 0 && (
-          <div className="flex justify-between text-success">
-            <span>Discount{discountType === "percentage" ? ` (${discountValue}%)` : ""}</span>
-            <span className="tabular-nums">- {money(discountAmount, currency)}</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Tax ({taxRate}%)</span>
-          <span className="tabular-nums">{money(tax, currency)}</span>
-        </div>
-        <div className="flex justify-between border-t border-border pt-1 font-semibold">
-          <span>Total</span>
-          <span className="tabular-nums">{money(total, currency)}</span>
-        </div>
-        {overDiscount && (
-          <p className="flex items-center gap-1 pt-1 text-xs text-destructive">
-            <Icon name="alert" size={13} />
-            Discount is more than the subtotal, lower it before publishing.
-          </p>
-        )}
+      <div className="mt-2">
+        <TotalsSummary
+          totals={totals}
+          taxRate={taxRate}
+          currency={currency}
+          discountType={discountType}
+          discountValue={discountValue}
+        />
       </div>
     </div>
   );

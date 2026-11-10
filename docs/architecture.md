@@ -99,7 +99,7 @@ SmartSME/
 ├── docker-compose.yml          PostgreSQL 16 + Redis 7 + Mailpit
 ├── run-dev.ps1                 starts both dev servers (Windows)
 ├── backend/
-│   ├── alembic/                migrations (versions/0001_initial_schema.py)
+│   ├── alembic/                migrations (versions/0001 to 0009)
 │   ├── alembic.ini
 │   ├── pyproject.toml          ruff (lint + format) and pytest config
 │   ├── requirements.txt
@@ -127,7 +127,7 @@ SmartSME/
 │       │   ├── security.py     PBKDF2 hashing + JWT session cookie
 │       │   └── utils.py        money, rounding, date parsing
 │       │
-│       ├── models/             SQLAlchemy models (14 tables)
+│       ├── models/             SQLAlchemy models (19 tables)
 │       │   ├── base.py         Base + column helpers + document mixins
 │       │   ├── business.py     Business · User
 │       │   ├── party.py        Party
@@ -174,11 +174,13 @@ SmartSME/
         ├── App.tsx             routes + session guard
         ├── index.css           design tokens (light/dark) + print rules
         ├── lib/                api.ts (client + hooks) · utils.ts · countries.ts · health.ts
+        │                       payments.ts (payment dialog rules) · draft.ts (document
+        │                       totals, what an Inbox review sends back)
         ├── components/         AppShell, AuthLayout, RevenueChart,
-        │                       LineItemsEditor, ui/*
-        └── pages/              Dashboard, SmartInput, Sales, SaleInvoice,
+        │                       LineItemsEditor, TotalsSummary, ui/*
+        └── pages/              Dashboard, SmartInput, Inbox, Sales, SaleInvoice,
                                 Purchases, Products, Parties, Expenses, Reports,
-                                Workflow, Events, Notifications, Settings, auth
+                                Workflow, Events, Notifications, Team, Settings, auth
 ```
 
 **Layer rules.** `core` never imports `models`, `domain` or `routers`, so it can be
@@ -209,13 +211,19 @@ SQLAlchemy models in `backend/app/models/`, migrations in `backend/alembic/`.
 | `events` | The outbox: type, JSONB payload, status, retry count, error |
 | `workflow_rules` / `workflow_executions` | Rule definitions and their audit trail |
 | `notifications` | Alerts surfaced in the bell menu |
+| `invites` | A pending invitation to join a business: email, role, a hash of the link token, expiry, accepted or revoked |
+| `login_attempts` | One row per sign-in attempt (email, IP, whether it worked), which is what the lockout counts |
+| `inbound_messages` | An order that arrived by email or Telegram, waiting in the Inbox; unique per business, channel and message id |
+| `channel_links` | Which Telegram chat belongs to which business |
 
 Positive `parties.balance` means *they owe us* (customer) or *we owe them*
 (supplier). `sales.amount_paid` says how much has been paid; the `payments`
 ledger says when, one row per movement of money. Money is `double precision`
 and every amount passes through `round2`.
 Timestamps are naive and treated as local time, so day/month boundaries in reports
-match the user's calendar.
+match the user's calendar. "Local" is the server's clock, which on a hosted
+machine is UTC unless told otherwise: `APP_TIMEZONE` (default `Asia/Kolkata`)
+sets it for the whole process at start-up, in `app/core/config.py`.
 
 Indexes cover the three hot paths: pending-event polling, per-event rule lookup,
 and the unread-notification badge.

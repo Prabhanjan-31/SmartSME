@@ -14,7 +14,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, api, isSessionExpiry, isUnauthorized } from "./api";
+import { ApiError, api, isSessionExpiry, isUnauthorized, onDataChanged } from "./api";
 
 type Captured = { url: string; init: RequestInit };
 
@@ -144,5 +144,74 @@ describe("401 handling", () => {
       expect(e.path).toBe("/auth/sign-in");
       expect(e.status).toBe(401);
     });
+  });
+});
+
+describe("telling the shell that something changed", () => {
+  // The bell's unread count lives in the shell, which is never remounted. It
+  // used to refetch only when the route changed, so "Mark read" left the red
+  // number in place until you left the Notifications page.
+  function listen(): { heard: () => number; stop: () => void } {
+    let count = 0;
+    const stop = onDataChanged(() => {
+      count += 1;
+    });
+    return { heard: () => count, stop };
+  }
+
+  it("speaks up after a write that worked", async () => {
+    captureFetch({ ok: true });
+    const { heard, stop } = listen();
+
+    await api.post("/notifications/abc/read");
+    expect(heard()).toBe(1);
+    await api.del("/notifications/abc");
+    expect(heard()).toBe(2);
+    await api.patch("/sales/abc", { date: "2026-11-10" });
+    expect(heard()).toBe(3);
+
+    stop();
+  });
+
+  it("stays quiet for a read, or every refetch would trigger the next", async () => {
+    captureFetch({ unread: 3 });
+    const { heard, stop } = listen();
+
+    await api.get("/notifications/unread-count");
+
+    expect(heard()).toBe(0);
+    stop();
+  });
+
+  it("stays quiet when the write was refused", async () => {
+    captureFetch({ detail: "A payment cannot be dated in the future." }, 400);
+    const { heard, stop } = listen();
+
+    await expect(api.post("/sales/abc/payments", { amount: 10 })).rejects.toThrow(/future/);
+
+    expect(heard()).toBe(0);
+    stop();
+  });
+
+  it("stays quiet for signing in and out, which change who is asking", async () => {
+    captureFetch({ ok: true });
+    const { heard, stop } = listen();
+
+    await api.post("/auth/sign-out");
+    await api.post("/auth/sign-in", { email: "a", password: "b" });
+
+    expect(heard()).toBe(0);
+    stop();
+  });
+
+  it("stops telling a listener that has unsubscribed", async () => {
+    captureFetch({ ok: true });
+    const { heard, stop } = listen();
+
+    await api.post("/notifications/read-all");
+    stop();
+    await api.post("/notifications/read-all");
+
+    expect(heard()).toBe(1);
   });
 });

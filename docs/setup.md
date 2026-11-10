@@ -107,7 +107,7 @@ cd frontend && npm run dev
 Open <http://localhost:5173> and sign in as `demo@smartsme.app` / `demo1234`. The
 first boot seeds that demo business automatically.
 
-To confirm the whole stack is wired up, run the tests, and 484 should pass:
+To confirm the whole stack is wired up, run the tests, and 569 should pass:
 
 ```bash
 cd backend
@@ -163,6 +163,11 @@ AUTH_SECRET="..."
 COOKIE_SECURE=false          # true when serving the API over HTTPS
 COOKIE_SAMESITE=lax          # "none" + secure when API and SPA are on different sites
 
+# ---- Clock ----
+# The time zone the shop keeps its books in. Matters on a hosted server, which
+# runs in UTC. Empty = use the machine clock. A TZ variable already set wins.
+APP_TIMEZONE="Asia/Kolkata"
+
 # ---- Frontend ----
 CORS_ORIGINS="http://localhost:5173"
 
@@ -189,6 +194,14 @@ key can actually reach before assuming the code is wrong.
 **Without an API key** the app still runs: text input falls back to a built-in
 regex parser, and image OCR is disabled with an explanatory message. The Settings
 page shows which provider is active and whether it can read images.
+
+**`APP_TIMEZONE`** decides what "today" is. Dates are stored without a zone and
+read as the server's local time, which on your own computer is already your
+time, so locally this changes nothing. On Linux and macOS the value is applied
+to the process at start-up; Windows has no way to do that, so there the
+machine's own zone is always used. On a hosted server it is what stops a
+payment made at one in the morning being refused as dated tomorrow: see
+[Deployment](deployment.md#2-backend-render-railway-or-fly).
 
 ---
 

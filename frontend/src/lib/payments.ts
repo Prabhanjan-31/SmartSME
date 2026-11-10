@@ -7,6 +7,8 @@
  * is told before the request goes out.
  */
 
+import { formatDate, toDateInputValue } from "./utils";
+
 export type PaymentMode = "cash" | "upi" | "card" | "cheque" | "bank_transfer" | "other";
 
 export interface FieldSpec {
@@ -144,6 +146,48 @@ export function paymentProblem(p: PaymentFields): string | null {
   }
   if (ref.length > (spec.reference.maxLength ?? 64)) return "That reference is too long.";
   return null;
+}
+
+/** The days a payment against a document may be dated, as `yyyy-mm-dd`. */
+export interface PaymentDateWindow {
+  /** The document's own day: money cannot arrive before the sale it pays. */
+  earliest: string;
+  /** Today: a payment that has not happened yet cannot be recorded. */
+  latest: string;
+  /** What to tell the person when `date` is outside the window, else null. */
+  problem: string | null;
+}
+
+/**
+ * Whether a payment may carry this date. Mirrors `payment_moment` on the
+ * server, which is the one that enforces it.
+ *
+ * Whole days are compared, never times. The document's date arrives with a
+ * time on it (an order accepted from Telegram at 15:42 says so), while the
+ * date picked here has none, and a payment on the document's own day is
+ * always allowed whatever the clock said.
+ */
+export function paymentDateWindow(
+  date: string,
+  documentDate: string,
+  noun: string,
+  now: Date = new Date(),
+): PaymentDateWindow {
+  const earliest = toDateInputValue(documentDate);
+  const latest = toDateInputValue(now);
+  let problem: string | null = null;
+  if (earliest > latest) {
+    problem =
+      `This ${noun} is dated ${formatDate(documentDate)}, which has not arrived yet. ` +
+      `Record the payment on that day, or correct the ${noun} date first.`;
+  } else if (!date) {
+    problem = "Choose the day the money was paid.";
+  } else if (date > latest) {
+    problem = "A payment cannot be dated in the future.";
+  } else if (date < earliest) {
+    problem = `A payment cannot be dated before the ${noun} itself (${formatDate(documentDate)}).`;
+  }
+  return { earliest, latest, problem };
 }
 
 /** The request body for a payment, with empty extras dropped. */

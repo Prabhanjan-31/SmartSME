@@ -66,6 +66,7 @@ export function Reports() {
       <PageHeader
         title="Reports"
         description="Sales, purchases, expenses, and profit at a glance."
+        info="Gross profit is what sales brought in, less the tax collected and less what the goods sold cost you to buy. Expenses are not taken off it. Download a report gives a PDF or CSV of sales, purchases and expenses for any period."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

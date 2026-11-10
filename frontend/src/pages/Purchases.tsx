@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Pagination, type PageInfo } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -120,7 +121,11 @@ export function Purchases() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Purchases" description="Supplier bills and purchase orders.">
+      <PageHeader
+        title="Purchases"
+        description="Supplier bills and purchase orders."
+        info="Every purchase is a bill from a supplier. Recording one adds its items to your stock, and whatever is left unpaid is added to what you owe that supplier."
+      >
         <Can do={PERMISSIONS.txnWrite}>
           <Button onClick={() => setNewOpen(true)}>
             <Icon name="plus" size={16} /> New purchase
@@ -213,6 +218,8 @@ export function Purchases() {
                           <RecordPaymentButton
                             due={p.due}
                             currency={cur}
+                            documentDate={p.date}
+                            noun="purchase"
                             label="Pay"
                             onSubmit={(payment) => api.post(`/purchases/${p.id}/payment`, payment)}
                             onDone={reload}
@@ -272,19 +279,27 @@ export function Purchases() {
                   }}
                 />
                 {detail.status !== "cancelled" && detail.due > 0 && (
-                  <EditDateButton
-                    needs={PERMISSIONS.dataManage}
-                    date={detail.dueDate}
-                    prefix="Due by"
-                    tone={detail.overdue ? "destructive" : "muted"}
-                    label="Change payment deadline"
-                    hint="The day the balance is expected. Extend it for someone who needs longer."
-                    onSave={(d) => api.patch(`/purchases/${detail.id}/due-date`, { date: d })}
-                    onDone={() => {
-                      reload();
-                      openDetail(detail.id);
-                    }}
-                  />
+                  <span className="inline-flex items-center gap-1.5">
+                    <EditDateButton
+                      needs={PERMISSIONS.dataManage}
+                      date={detail.dueDate}
+                      prefix="Due by"
+                      tone={detail.overdue ? "destructive" : "muted"}
+                      label="Change payment deadline"
+                      hint="The day the balance is expected. Extend it for someone who needs longer."
+                      onSave={(d) => api.patch(`/purchases/${detail.id}/due-date`, { date: d })}
+                      onDone={() => {
+                        reload();
+                        openDetail(detail.id);
+                      }}
+                    />
+                    <InfoTip label="About the payment deadline">
+                      The bill date plus the payment deadline: this supplier&apos;s own number of
+                      days if one is set under Parties, otherwise the default in Settings (30 days
+                      to start with). Anyone allowed to amend purchases can click the date to move
+                      the deadline for this bill alone.
+                    </InfoTip>
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -389,6 +404,8 @@ export function Purchases() {
                 <RecordPaymentButton
                   due={detail.due}
                   currency={cur}
+                  documentDate={detail.date}
+                  noun="purchase"
                   label="Pay"
                   variant="primary"
                   onSubmit={(payment) => api.post(`/purchases/${detail.id}/payment`, payment)}
