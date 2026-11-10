@@ -26,7 +26,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_URL = "postgresql+psycopg://smartsme:smartsme@localhost:5432/smartsme"
+DEFAULT_URL = "postgresql+psycopg://smartsme:smartsme@localhost:5433/smartsme"
 
 
 def _configured_database_url() -> str:

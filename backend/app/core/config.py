@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # ---- Database -----------------------------------------------------------
     # Postgres is required; there is no embedded fallback.
-    database_url: str = "postgresql+psycopg://smartsme:smartsme@localhost:5432/smartsme"
+    database_url: str = "postgresql+psycopg://smartsme:smartsme@localhost:5433/smartsme"
 
     # ---- Connection pool ----------------------------------------------------
     # SQLAlchemy's defaults (5 + 10) are sized for a script, not a server: every
