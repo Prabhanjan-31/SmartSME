@@ -38,7 +38,7 @@ cd SmartSME
 ### 3. Start PostgreSQL
 
 ```bash
-docker compose up -d       # Postgres 16 (:5432), Redis 7 (:6379), Mailpit (:1025/:8025/:1110)
+docker compose up -d       # Postgres 16 (:5433), Redis 7 (:6379), Mailpit (:1025/:8025/:1110)
 docker ps                  # expect smartsme-db-1, smartsme-redis-1 and smartsme-mailpit-1
 ```
 
@@ -140,12 +140,25 @@ whether it is live.
 |---|---|---|
 | `WinError 10013` on uvicorn, or `address already in use` | port 8000 is taken | `netstat -ano \| findstr :8000`, then stop that process |
 | `Port 5173 is in use, trying another one` | another Vite is running | harmless, the proxy still targets :8000, or stop the other one |
-| Postgres container will not start, port 5432 in use | a native PostgreSQL is installed on the host | stop that service, or change the published port in `docker-compose.yml` |
+| `connection to server at "127.0.0.1", port 5432 failed` (on Windows: `Socket is not connected`) | `backend/.env` predates the move to 5433 | set the port in `DATABASE_URL` to 5433, as in `backend/.env.example` |
+| `password authentication failed for user "smartsme"` on 5433, or the container will not start | a native PostgreSQL on the host already uses 5433 | stop that service, or publish the container on a free port with a local override (below) and use that port in `DATABASE_URL` |
 | API exits with a connection error on startup | the container is not running | `docker compose up -d` |
 | `alembic` / `uvicorn` "not recognised" | the virtualenv is not active | activate it, or call `.venv\Scripts\python -m uvicorn ...` |
 | `.\run-dev.ps1` is blocked | PowerShell execution policy | `powershell -ExecutionPolicy Bypass -File .\run-dev.ps1` |
 | `does not provide an export named …` in the browser | Vite cached a module that has since changed | stop the dev server and `npm run dev` again |
 | relation "businesses" does not exist | migrations never ran | `alembic upgrade head` |
+
+To change the database port on one machine without touching the shared
+`docker-compose.yml`, put a `docker-compose.override.yml` beside it. Compose
+merges it in automatically. Keep it out of git by adding its name to
+`.git/info/exclude`.
+
+```yaml
+services:
+  db:
+    ports: !override
+      - "5432:5432"   # host port first; match it in DATABASE_URL
+```
 
 ---
 
@@ -155,7 +168,7 @@ Backend config lives in `backend/.env` (see `backend/.env.example`).
 
 ```bash
 # ---- Database (required) ----
-DATABASE_URL="postgresql+psycopg://smartsme:smartsme@localhost:5432/smartsme"
+DATABASE_URL="postgresql+psycopg://smartsme:smartsme@localhost:5433/smartsme"
 
 # ---- Auth ----
 # 32+ chars. Generate one: python -c "import secrets; print(secrets.token_hex(32))"
